@@ -49,7 +49,7 @@ class Hernquist(object):
     def draw_coordinates(self, N):
         r = self.draw_radii(N)
 
-        theta = np.multiply(np.random.rand(N), np.pi)
+        theta = np.arccos(np.subtract(1., np.multiply(2., np.random.rand(N))))
         phi = np.multiply(np.random.rand(N), 2.*np.pi)
 
         # x = r * sin(theta) * cos(phi)
