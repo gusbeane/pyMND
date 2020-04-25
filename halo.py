@@ -40,10 +40,13 @@ class Hernquist(object):
         return ans
 
     def draw_radii(self, N):
-        fenclosed = np.random.rand(N)
-
-        # rt = sqrt( fenclosed / (1 - fenclosed) )
-        rt = np.sqrt(np.divide(fenclosed, np.subtract(1., fenclosed))) 
+        f = np.random.rand(N)
+        sqrtf = np.sqrt(f)
+        
+        #f = fenclosed
+        #r/a = sqrt(f) / (1-sqrt(f))
+        
+        rt = np.divide(sqrtf, np.subtract(1., sqrtf))
         return np.multiply(rt, self.a)
 
     def draw_coordinates(self, N):
