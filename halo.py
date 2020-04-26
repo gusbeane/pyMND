@@ -10,6 +10,10 @@ class Hernquist(object):
         self.a = a
 
         self.density_prefactor = self.M / (2. * np.pi * self.a**3)
+        self.vg = (self.G * self.M / self.a)**(0.5)
+        self.f_prefactor = self.M / (8. * np.sqrt(2) * np.pi**3 * self.a**3 * self.vg**3)
+        self.g_prefactor = (2. * np.sqrt(2) * np.pi**2 * self.a**3 * self.vg) / (3.)
+        self.phi_of_0 = - self.G * self.M / self.a
 
     def _init_units_(self, UnitLength_in_cm, UnitMass_in_g, UnitVelocity_in_cm_per_s):
         self.UnitLength_in_cm = UnitLength_in_cm
@@ -38,6 +42,86 @@ class Hernquist(object):
         ans = np.multiply(np.power(rt, 2.), np.add(rt, 1.), -2.)
         ans = np.multiply(ans, self.M)
         return ans
+
+    def f_of_q(self, q):
+        # Equation 17 of Hernquist 1990
+        qsquared = np.square(q)
+        oneminusqsquared = np.subtract(1., qsquared)
+
+        # 3 * arcsin(q)
+        term1 = np.multiply(3., np.arcsin(q))
+
+        # q * sqrt(1-q**2) * (1 - 2q**2) * (8*q**4 - 8q**2 -3)
+        term2 = np.multiply(8., np.subtract(np.square(qsquared), qsquared))
+        np.subtract(term2, 3., out=term2)
+        np.multiply(np.sqrt(oneminusqsquared), term2, out=term2)
+        np.multiply(q, term2, out=term2)
+        np.multiply(np.subtract(oneminusqsquared, qsquared), term2, out=term2)
+
+        np.add(term1, term2, out=term1)
+
+        np.multiply(term1, np.power(oneminusqsquared, -5./2.), out=term1)
+
+        ans = np.multiply(term1, self.f_prefactor)
+
+        return ans
+
+    def g_of_q(self, q):
+        # Equation 23 of Hernquist 1990
+        qsquared = np.square(q)
+
+        # term1 = 3 * (8 * q**4 - 4 * q**2 + 1) * np.arccos(q)
+        term1 = np.multiply(8., np.square(qsquared))
+        np.subtract(term1, np.multiply(4., qsquared), out=term1)
+        np.add(term1, 1., out=term1)
+        np.multiply(term1, np.arccos(q), out=term1)
+        np.multiply(term1, 3., out=term1)
+
+
+        # term2 = q * (1 - q**2)**(1/2) *(4*q**2 - 1) * (2*q**2 + 3)
+        term2 = np.sqrt(np.subtract(1., qsquared))
+        np.multiply(term2, np.subtract(np.multiply(4., qsquared), 1.), out=term2)
+        np.multiply(term2, np.add(np.multiply(2., qsquared), 3.), out=term2)
+        np.multiply(term2, q, out=term2)
+
+        np.subtract(term1, term2, out=term1)
+        np.multiply(term1, np.power(q, -5.), out=term1)
+
+        return np.multiply(term1, self.g_prefactor)
+
+    def _dMdE_close_to_1_(self, q):
+        # appears to be a factor of 0.5 wrong in Hernquist 1990
+        prefactor = 0.5 * (32./35.) * (pot.M / pot.vg**2)
+        return np.multiply(prefactor, np.subtract(1., np.square(q)))
+
+    def _dMdE_close_to_0_(self, q):
+        prefactor = (16./5.) * (pot.M/pot.vg**2)
+        ans = np.multiply(18./7., np.square(q))
+        ans = np.subtract(1., ans)
+        return np.multiply(prefactor, ans)
+
+    def dMdE(self, E, convert_to_q=True):
+        if convert_to_q:
+            q = self.q_of_E(E)
+        else:
+            q = E
+        ans = np.multiply(self.f_of_q(q), self.g_of_q(q))
+
+        # now revert to Taylor series for q close to 1
+        keys = np.where(np.longdouble(np.subtract(1., q)) < 1e-4)[0]
+        ans[keys] = self._dMdE_close_to_1_(q[keys])
+
+        # now revert to Taylor series for q close to 0
+        keys = np.where(q < 1e-3)[0]
+        ans[keys] = self._dMdE_close_to_0_(q[keys])
+
+        return ans
+
+    def E_of_q(self, q):
+        return np.negative(np.multiply(self.phi_of_0, np.square(q)))
+
+    def q_of_E(self, E):
+        return np.sqrt(np.divide(E, self.phi_of_0))
 
     def draw_radii(self, N):
         f = np.random.rand(N)
@@ -142,6 +226,8 @@ class Hernquist(object):
         ics.write()
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt 
+
     a = 25 # kpc
     M = 1E12/1E10 # 1E10 Msun
     pot = Hernquist(M, a)
@@ -149,13 +235,32 @@ if __name__ == '__main__':
     # rlist = pot.a * np.linspace(0, 10, 1000)
     # sigmasq = pot._sigmasq_(rlist)
 
-    N = int(1E6)
-    pot.gen_ics(N, 'ics.hdf5')
+    Elist = np.linspace(0.9999999, 0.000000001, 10000, dtype=np.longdouble) * pot.phi_of_0
+    qlist = pot.q_of_E(Elist)
+    g = pot.g_of_q(qlist)
+    f = pot.f_of_q(qlist)
+    dMdE = pot.dMdE(Elist)
+
+    x = Elist/(np.abs(pot.phi_of_0))
+    plt.plot(x, dMdE * np.abs(pot.phi_of_0)/pot.M)
+    plt.axhline(np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2))
+    # plt.plot(x, np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2) * np.exp(2*x))
+    # plt.plot(np.abs(Elist/pot.phi_of_0), f * (pot.G*pot.M*pot.a)**(3/2)/M)
+    # plt.plot(Elist/np.abs(pot.phi_of_0), g / (pot.a**2 * np.sqrt(pot.G*pot.M*pot.a)))
+    plt.yscale('log')
+    plt.xlim(-1, 0)
+    # plt.ylim(1E-7, 1E4)
+    plt.ylim(1E-3, 1E1)
+    plt.show()
+
+
+
+    # N = int(1E6)
+    # pot.gen_ics(N, 'ics.hdf5')
 
     # N = int(1E4)
     # pos = pot.draw_coordinates(N)
 
-    # import matplotlib.pyplot as plt 
     # plt.scatter(pos[:,0], pos[:,1], s=1)
     # plt.xlim(-80, 80)
     # plt.ylim(-80, 80)
