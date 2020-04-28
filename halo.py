@@ -266,6 +266,7 @@ class Hernquist(object):
 
     def draw_velocities(self, pos):
         r = np.linalg.norm(pos, axis=1)
+        N = len(r)
 
         speeds = self.draw_speeds(r)
 
