@@ -1,5 +1,6 @@
 import numpy as np
 import arepo
+from util import rejection_sample
 
 class Hernquist(object):
     def __init__(self, M, a,
@@ -35,6 +36,11 @@ class Hernquist(object):
         rt = np.divide(r, self.a)
         ans = np.multiply(np.power(rt, -1.), np.power(np.add(rt, 1.), -3.))
         ans = np.multiply(ans, self.density_prefactor)
+        return ans
+
+    def potential(self, r):
+        ans = np.add(r, self.a)
+        ans = np.divide(-self.G * self.M, ans)
         return ans
 
     def mass_enclosed(self, r):
@@ -101,10 +107,13 @@ class Hernquist(object):
         return np.multiply(prefactor, ans)
 
     def dMdE(self, E, convert_to_q=True):
+        # TODO: redo this because I think it's not working the way I want
+        # but got draw_energies to give reasonable samples
         if convert_to_q:
             q = self.q_of_E(E)
         else:
             q = E
+
         ans = np.multiply(self.f_of_q(q), self.g_of_q(q))
 
         # now revert to Taylor series for q close to 1
@@ -118,7 +127,7 @@ class Hernquist(object):
         return ans
 
     def E_of_q(self, q):
-        return np.negative(np.multiply(self.phi_of_0, np.square(q)))
+        return np.multiply(self.phi_of_0, np.square(q))
 
     def q_of_E(self, E):
         return np.sqrt(np.divide(E, self.phi_of_0))
@@ -184,7 +193,17 @@ class Hernquist(object):
         ans = 2. * self.G * self.M
         return np.divide(ans, np.add(r, self.a))
 
-    def draw_velocities(self, pos):
+    def draw_energies(self, N, return_E=True):
+        maxval = 1.1*(16./5.) * (self.M/self.vg**2)
+        samples = rejection_sample(self.dMdE, maxval, N, xrng=[0, 1], fn_args={'convert_to_q': False})
+        samples = np.multiply(samples, self.phi_of_0)
+
+        if not return_E:
+            samples = self.E_of_q(samples)
+        
+        return samples
+
+    def old_draw_velocities(self, pos):
         r = np.linalg.norm(pos, axis=1)
 
         N = len(r)
@@ -214,6 +233,32 @@ class Hernquist(object):
         # so for now, since isotropic, can just substitute vx=vr, vy=...
         return np.transpose([vr, vphi, vtheta])
 
+    def draw_velocities(self, pos):
+        r = np.linalg.norm(pos, axis=1)
+
+        N = len(r)
+        energies = self.draw_energies(N)
+        energies = np.subtract(energies, self.potential(r))
+        
+        # TODO: why the fuck does this work?
+        energies = np.abs(energies)
+
+        energies = np.multiply(energies, 2.)
+        speeds = np.sqrt(energies)
+
+        theta = np.arccos(np.subtract(1., np.multiply(2., np.random.rand(N))))
+        phi = np.multiply(np.random.rand(N), 2.*np.pi)
+
+        # vx = v * sin(theta) * cos(phi)
+        # vy = v * sin(theta) * sin(phi)
+        # vz = v * cos(theta)
+        stheta = np.sin(theta)
+        vx = np.multiply(np.multiply(speeds, stheta), np.cos(phi))
+        vy = np.multiply(np.multiply(speeds, stheta), np.sin(phi))
+        vz =             np.multiply(speeds, np.cos(theta))
+        
+        return np.transpose([vx, vy, vz])
+
     def gen_ics(self, N, fname):
         ics = arepo.ICs(fname, [0, N, 0, 0, 0, 0], masses=[0, self.M/N, 0, 0, 0, 0])
 
@@ -242,21 +287,27 @@ if __name__ == '__main__':
     dMdE = pot.dMdE(Elist)
 
     x = Elist/(np.abs(pot.phi_of_0))
-    plt.plot(x, dMdE * np.abs(pot.phi_of_0)/pot.M)
-    plt.axhline(np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2))
-    # plt.plot(x, np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2) * np.exp(2*x))
-    # plt.plot(np.abs(Elist/pot.phi_of_0), f * (pot.G*pot.M*pot.a)**(3/2)/M)
-    # plt.plot(Elist/np.abs(pot.phi_of_0), g / (pot.a**2 * np.sqrt(pot.G*pot.M*pot.a)))
-    plt.yscale('log')
-    plt.xlim(-1, 0)
-    # plt.ylim(1E-7, 1E4)
-    plt.ylim(1E-3, 1E1)
-    plt.show()
+    # plt.plot(x, dMdE * np.abs(pot.phi_of_0)/pot.M)
+    # plt.axhline(np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2))
+    # # plt.plot(x, np.abs(pot.phi_of_0) * 16. / (5. * pot.vg**2) * np.exp(2*x))
+    # # plt.plot(np.abs(Elist/pot.phi_of_0), f * (pot.G*pot.M*pot.a)**(3/2)/M)
+    # # plt.plot(Elist/np.abs(pot.phi_of_0), g / (pot.a**2 * np.sqrt(pot.G*pot.M*pot.a)))
+    # plt.yscale('log')
+    # plt.xlim(-1, 0)
+    # # plt.ylim(1E-7, 1E4)
+    # plt.ylim(1E-3, 1E1)
+    # plt.show()
 
+    # energies = pot.draw_energies(int(1E7))
+    # # plt.hist(energies/np.abs(pot.phi_of_0), bins=100)
+    # plt.hist(energies, bins=100)
+    # plt.yscale('log')
+    # plt.show()
 
-
-    # N = int(1E6)
+    N = int(1E6)
     # pot.gen_ics(N, 'ics.hdf5')
+    pos = pot.draw_coordinates(N)
+    energies = pot.draw_velocities(pos)
 
     # N = int(1E4)
     # pos = pot.draw_coordinates(N)
