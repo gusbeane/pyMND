@@ -50,6 +50,15 @@ class Hernquist(object):
         ans = np.multiply(ans, self.M)
         return ans
 
+    def _f_of_q_close_to_1_(self, q):
+        # appears to be a lot wrong in this eqn in Hernquist 1990
+        prefactor = 3 * self.M / (16 * np.sqrt(2) * np.pi**2 * self.a**3 * self.vg**3)
+        a = np.power(np.subtract(1., np.square(q)), 5./2.)
+        ans = np.multiply(32./(5.*np.pi), a)
+        ans = np.subtract(1., ans)
+        ans = np.divide(ans, a)
+        return np.multiply(ans, prefactor)
+
     def f_of_q(self, q):
         # Equation 17 of Hernquist 1990
         qsquared = np.square(q)
@@ -76,6 +85,11 @@ class Hernquist(object):
     def f_of_E(self, E):
         q = self.q_of_E(E)
         return self.f_of_q(q)
+    
+    def f_of_vr(self, v, r=0.0):
+        pot = self.potential(r)
+        kin = np.multiply(0.5, np.square(v))
+        return self.f_of_E(np.add(pot, kin))
 
     def g_of_q(self, q):
         # Equation 23 of Hernquist 1990
@@ -208,6 +222,18 @@ class Hernquist(object):
 
         return np.array(energies)
 
+    def draw_speeds(self, r):
+        speeds = []
+        pot_list = self.potential(r)
+        vmax_list = np.sqrt(np.multiply(2., np.abs(pot_list)))
+        maxval_list = self.f_of_vr(0, r)
+
+        for this_r, maxval, vmax in zip(r, tqdm(maxval_list), vmax_list):
+            sample = rejection_sample(self.f_of_vr, maxval, 1, xrng=[0, vmax], fn_args={'r': this_r})
+            speeds.append(float(sample))
+
+        return np.array(speeds)
+
     def old_draw_velocities(self, pos):
         r = np.linalg.norm(pos, axis=1)
 
@@ -241,12 +267,7 @@ class Hernquist(object):
     def draw_velocities(self, pos):
         r = np.linalg.norm(pos, axis=1)
 
-        N = len(r)
-        energies = self.draw_energies(r)
-        energies = np.subtract(energies, self.potential(r))
-
-        energies = np.multiply(energies, 2.)
-        speeds = np.sqrt(energies)
+        speeds = self.draw_speeds(r)
 
         theta = np.arccos(np.subtract(1., np.multiply(2., np.random.rand(N))))
         phi = np.multiply(np.random.rand(N), 2.*np.pi)
@@ -309,7 +330,11 @@ if __name__ == '__main__':
     N = int(1E5)
     pot.gen_ics(N, 'ics.hdf5')
     # pos = pot.draw_coordinates(N)
-    # energies = pot.draw_velocities(pos)
+    # r = np.linalg.norm(pos, axis=1)
+    # speeds = pot.draw_speeds(r)
+    # energies = pot.draw_energies(r)
+    # speeds, vel = pot.draw_velocities(pos)
+    # vmag = np.linalg.norm(vel, axis=1)
 
     # N = int(1E4)
     # pos = pot.draw_coordinates(N)
