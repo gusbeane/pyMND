@@ -1,6 +1,7 @@
 import numpy as np
 import arepo
 from util import rejection_sample
+from tqdm import tqdm
 
 class Hernquist(object):
     def __init__(self, M, a,
@@ -71,6 +72,10 @@ class Hernquist(object):
         ans = np.multiply(term1, self.f_prefactor)
 
         return ans
+
+    def f_of_E(self, E):
+        q = self.q_of_E(E)
+        return self.f_of_q(q)
 
     def g_of_q(self, q):
         # Equation 23 of Hernquist 1990
@@ -193,15 +198,15 @@ class Hernquist(object):
         ans = 2. * self.G * self.M
         return np.divide(ans, np.add(r, self.a))
 
-    def draw_energies(self, N, return_E=True):
-        maxval = 1.1*(16./5.) * (self.M/self.vg**2)
-        samples = rejection_sample(self.dMdE, maxval, N, xrng=[0, 1], fn_args={'convert_to_q': False})
-        samples = np.multiply(samples, self.phi_of_0)
+    def draw_energies(self, r):
+        energies = []
+        pot_list = self.potential(r)
+        maxval_list = self.f_of_E(pot_list)
+        for pot, maxval in zip(tqdm(pot_list), maxval_list):
+            sample = rejection_sample(self.f_of_E, maxval, 1, xrng=[pot, 0])
+            energies.append(float(sample))
 
-        if not return_E:
-            samples = self.E_of_q(samples)
-        
-        return samples
+        return np.array(energies)
 
     def old_draw_velocities(self, pos):
         r = np.linalg.norm(pos, axis=1)
@@ -237,11 +242,8 @@ class Hernquist(object):
         r = np.linalg.norm(pos, axis=1)
 
         N = len(r)
-        energies = self.draw_energies(N)
+        energies = self.draw_energies(r)
         energies = np.subtract(energies, self.potential(r))
-        
-        # TODO: why the fuck does this work?
-        energies = np.abs(energies)
 
         energies = np.multiply(energies, 2.)
         speeds = np.sqrt(energies)
@@ -304,10 +306,10 @@ if __name__ == '__main__':
     # plt.yscale('log')
     # plt.show()
 
-    N = int(1E6)
-    # pot.gen_ics(N, 'ics.hdf5')
-    pos = pot.draw_coordinates(N)
-    energies = pot.draw_velocities(pos)
+    N = int(1E5)
+    pot.gen_ics(N, 'ics.hdf5')
+    # pos = pot.draw_coordinates(N)
+    # energies = pot.draw_velocities(pos)
 
     # N = int(1E4)
     # pos = pot.draw_coordinates(N)
@@ -326,4 +328,5 @@ if __name__ == '__main__':
 
     # plt.plot(rbins, Menclosed)
     # plt.plot(rbins, rbins**2 / (rbins**2 + a**2))
+# 
 # 
