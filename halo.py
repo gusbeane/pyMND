@@ -97,11 +97,11 @@ class Hernquist(object):
 
     def _dMdE_close_to_1_(self, q):
         # appears to be a factor of 0.5 wrong in Hernquist 1990
-        prefactor = 0.5 * (32./35.) * (pot.M / pot.vg**2)
+        prefactor = 0.5 * (32./35.) * (self.M / self.vg**2)
         return np.multiply(prefactor, np.subtract(1., np.square(q)))
 
     def _dMdE_close_to_0_(self, q):
-        prefactor = (16./5.) * (pot.M/pot.vg**2)
+        prefactor = (16./5.) * (self.M/self.vg**2)
         ans = np.multiply(18./7., np.square(q))
         ans = np.subtract(1., ans)
         return np.multiply(prefactor, ans)
