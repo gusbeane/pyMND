@@ -69,14 +69,14 @@ class Hernquist(object):
 
         # q * sqrt(1-q**2) * (1 - 2q**2) * (8*q**4 - 8q**2 -3)
         term2 = np.multiply(8., np.subtract(np.square(qsquared), qsquared))
-        np.subtract(term2, 3., out=term2)
-        np.multiply(np.sqrt(oneminusqsquared), term2, out=term2)
-        np.multiply(q, term2, out=term2)
-        np.multiply(np.subtract(oneminusqsquared, qsquared), term2, out=term2)
+        term2 = np.subtract(term2, 3.)
+        term2 = np.multiply(np.sqrt(oneminusqsquared), term2)
+        term2 = np.multiply(q, term2)
+        term2 = np.multiply(np.subtract(oneminusqsquared, qsquared), term2)
 
-        np.add(term1, term2, out=term1)
+        term1 = np.add(term1, term2)
 
-        np.multiply(term1, np.power(oneminusqsquared, -5./2.), out=term1)
+        term1 = np.multiply(term1, np.power(oneminusqsquared, -5./2.))
 
         ans = np.multiply(term1, self.f_prefactor)
 
@@ -329,10 +329,10 @@ if __name__ == '__main__':
     # plt.show()
 
     N = int(1E5)
-    pot.gen_ics(N, 'ics.hdf5')
-    # pos = pot.draw_coordinates(N)
-    # r = np.linalg.norm(pos, axis=1)
-    # speeds = pot.draw_speeds(r)
+    # pot.gen_ics(N, 'ics.hdf5')
+    pos = pot.draw_coordinates(N)
+    r = np.linalg.norm(pos, axis=1)
+    speeds = pot.draw_speeds(r)
     # energies = pot.draw_energies(r)
     # speeds, vel = pot.draw_velocities(pos)
     # vmag = np.linalg.norm(vel, axis=1)
