@@ -83,6 +83,12 @@ class Hernquist(object):
         return ans
 
     def f_of_E(self, E):
+        keys = np.where(np.logical_and(E>0, E<1e-8))[0]
+        keys_ = np.where(E > 1e-2)[0]
+        if len(keys_) > 0:
+            print(E[keys_])
+
+        E[keys] = -1e-8
         q = self.q_of_E(E)
         return self.f_of_q(q)
     
@@ -90,6 +96,9 @@ class Hernquist(object):
         pot = self.potential(r)
         kin = np.multiply(0.5, np.square(v))
         return self.f_of_E(np.add(pot, kin))
+
+    def my_f_of_vr(self, v, r=0.0):
+        return np.multiply(self.f_of_vr(v, r), np.square(v))
 
     def g_of_q(self, q):
         # Equation 23 of Hernquist 1990
@@ -226,10 +235,13 @@ class Hernquist(object):
         speeds = []
         pot_list = self.potential(r)
         vmax_list = np.sqrt(np.multiply(2., np.abs(pot_list)))
-        maxval_list = self.f_of_vr(0, r)
 
-        for this_r, maxval, vmax in zip(r, tqdm(maxval_list), vmax_list):
-            sample = rejection_sample(self.f_of_vr, maxval, 1, xrng=[0, vmax], fn_args={'r': this_r})
+        maxval_list = self.my_f_of_vr(vmax_list/2., r) * 10 
+
+        for this_r, vmax in zip(tqdm(r), vmax_list):
+            vlist = np.linspace(0, vmax, 100)
+            maxval = np.nanmax(self.my_f_of_vr(vlist, this_r)) * 2
+            sample = rejection_sample(self.my_f_of_vr, maxval, 1, xrng=[0, vmax], fn_args={'r': this_r})
             speeds.append(float(sample))
 
         return np.array(speeds)
@@ -308,7 +320,15 @@ if __name__ == '__main__':
     qlist = pot.q_of_E(Elist)
     g = pot.g_of_q(qlist)
     f = pot.f_of_q(qlist)
+    
     dMdE = pot.dMdE(Elist)
+
+    r = pot.a
+    this_pot = pot.potential(r)
+    vmax = np.sqrt(-2 * this_pot)
+    vlist = np.linspace(0, vmax, 1000)
+    myf = pot.my_f_of_vr(vlist, r)
+    plt.plot(vlist, myf)
 
     x = Elist/(np.abs(pot.phi_of_0))
     # plt.plot(x, dMdE * np.abs(pot.phi_of_0)/pot.M)
@@ -329,7 +349,7 @@ if __name__ == '__main__':
     # plt.show()
 
     N = int(1E5)
-    pot.gen_ics(N, 'ics.hdf5')
+    # pot.gen_ics(N, 'ics.hdf5')
     # pos = pot.draw_coordinates(N)
     # r = np.linalg.norm(pos, axis=1)
     # speeds = pot.draw_speeds(r)
