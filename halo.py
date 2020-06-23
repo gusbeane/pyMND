@@ -2,6 +2,22 @@ import numpy as np
 import arepo
 from util import rejection_sample
 from tqdm import tqdm
+from units import pyMND_units
+
+u = pyMND_units()
+
+def Hernquist_density(r, M, a):
+    density_prefactor = M / (2. * n.pi * a**3)
+    rt = np.divide(r, a)
+    ans = np.multiply(np.power(rt, -1.), np.power(np.add(rt, 1.), -3.))
+    ans = np.multiply(ans, density_prefactor)
+    return ans
+
+def Hernquist_potential(r, M, a):
+    ans = np.add(r, a)
+    ans = np.divide(-u.G * M, ans)
+    return ans
+
 
 class Hernquist(object):
     def __init__(self, M, a,
@@ -12,37 +28,12 @@ class Hernquist(object):
         self.a = a
 
         self.density_prefactor = self.M / (2. * np.pi * self.a**3)
-        self.vg = (self.G * self.M / self.a)**(0.5)
+        self.vg = (u.G * self.M / self.a)**(0.5)
         self.f_prefactor = self.M / (8. * np.sqrt(2) * np.pi**3 * self.a**3 * self.vg**3)
         self.g_prefactor = (2. * np.sqrt(2) * np.pi**2 * self.a**3 * self.vg) / (3.)
-        self.phi_of_0 = - self.G * self.M / self.a
+        self.phi_of_0 = - u.G * self.M / self.a
 
-    def _init_units_(self, UnitLength_in_cm, UnitMass_in_g, UnitVelocity_in_cm_per_s):
-        self.UnitLength_in_cm = UnitLength_in_cm
-        self.UnitMass_in_g = UnitMass_in_g
-        self.UnitVelocity_in_cm_per_s = UnitVelocity_in_cm_per_s
-
-        self._SEC_PER_GIGAYEAR_ = 3.15576e16
-        self._SEC_PER_MEGAYEAR_ = 3.15576e13
-        self._SEC_PER_YEAR_     = 3.15576e7
-
-        self.UnitTime_in_s      = UnitLength_in_cm / UnitVelocity_in_cm_per_s
-        self.UnitTime_in_Megayears = self.UnitTime_in_s / self._SEC_PER_MEGAYEAR_
-
-        self._GRAVITY_ = 6.6738e-8
-
-        self.G = self._GRAVITY_ * UnitLength_in_cm**(-3.) * UnitMass_in_g * self.UnitTime_in_s**(2.)
-
-    def density(self, r):
-        rt = np.divide(r, self.a)
-        ans = np.multiply(np.power(rt, -1.), np.power(np.add(rt, 1.), -3.))
-        ans = np.multiply(ans, self.density_prefactor)
-        return ans
-
-    def potential(self, r):
-        ans = np.add(r, self.a)
-        ans = np.divide(-self.G * self.M, ans)
-        return ans
+    
 
     def mass_enclosed(self, r):
         rt = np.divide(r, self.a)
@@ -83,7 +74,7 @@ class Hernquist(object):
         return np.transpose([x, y, z])
 
     def _vesc_sq_(self, r):
-        ans = 2. * self.G * self.M
+        ans = 2. * u.G * self.M
         return np.divide(ans, np.add(r, self.a))
 
     def draw_energies(self, r):
