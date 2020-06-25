@@ -1,5 +1,6 @@
 class pyMND_units(object):
-    def __init__(self, UnitLength_in_cm=3.085678e21, 
+    def __init__(self, HubbleParam,
+                       UnitLength_in_cm=3.085678e21, 
                        UnitMass_in_g=1.989e43, 
                        UnitVelocity_in_cm_per_s=1e5):
         # Set physical constants.
@@ -21,6 +22,9 @@ class pyMND_units(object):
 
         self.G = self.GRAVITY * self.UnitLength_in_cm**(-3.) * \
                            self.UnitMass_in_g * self.UnitTime_in_s**(2.)
+        
+        self.HubbleParam = HubbleParam
+        self.H0 = self.HubbleParam * 100 * 1e5 / self.CM_PER_MPC / self.UnitVelocity_in_cm_per_s * self.UnitLength_in_cm
     
     def _set_physical_constants(self):
         self.GAMMA = 5./3.
