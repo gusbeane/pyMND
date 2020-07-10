@@ -1,7 +1,9 @@
-from units import pyMND_units
+import numpy as np
 from math import log, sqrt, pow
-
 from scipy.integrate import romberg
+
+from units import pyMND_units
+from halo import *
 
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, 
@@ -14,12 +16,21 @@ class pyMND(object):
         self.N_HALO = N_HALO
         self.OutputDir = OutputDir
         self.OutputFile = OutputFile
-
         self.HubbleParam = HubbleParam
 
         self.u = pyMND_units(self.HubbleParam)
 
+        # initialize structural constants
         self._structure()
+
+        # draw positions
+        self._draw_halo_pos()
+
+        # compute velocity dispersions
+        self._compute_vel_disp_halo()
+
+        # draw velocities
+        self._draw_halo_vel()
 
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
@@ -48,6 +59,64 @@ class pyMND(object):
 
     def gc_int(self, x):
         return pow(log(1 + x) - x / (1 + x), 0.5) * pow(x, 1.5) / pow(1 + x, 2)
+    
+    def potential(self, pos):
+        return halo_potential(pos, self.M_HALO, self.RH, self.u)
+    
+    def potential_derivative_R(self, pos):
+        return halo_potential_derivative_R(pos, self.M_HALO, self.RH, self.u)
+    
+    def circular_velocity_squared(self, pos):
+        R = np.linalg.norm(pos[:,:2], axis=1)
+        partial_phi = self.potential_derivative_R(pos)
+        print(R, partial_phi)
+        return R * partial_phi
+
+    def _draw_halo_pos(self):
+        r = halo_draw_r(self.N_HALO, self.RH)
+        phi = np.multiply(2.*self.u.PI, np.random.rand(self.N_HALO))
+        theta = np.arccos(np.random.rand(self.N_HALO) * 2. - 1.)
+
+        stheta = np.sin(theta)
+        ctheta = np.cos(theta)
+
+        xp_halo = np.multiply(np.multiply(r, stheta), np.cos(phi))
+        yp_halo = np.multiply(np.multiply(r, stheta), np.sin(phi))
+        zp_halo = np.multiply(r, ctheta)
+        self.halo_pos = np.transpose([xp_halo, yp_halo, zp_halo])
+        return
+    
+    def _compute_vel_disp_halo(self):
+        vcirc_squared = self.circular_velocity_squared(self.halo_pos)
+        
+        ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
+            compute_velocity_ellipsoid_halo(self.halo_pos, self.M_HALO, self.RH,
+                                            self.u, vcirc_squared, self.halo_spinfactor)
+        
+        self.ave_R, self.ave_z, self.ave_phi = ave_R, ave_z, ave_phi
+        self.sigma_R, self.sigma_z, self.sigma_phi = sigma_R, sigma_z, sigma_phi
+    
+    def _draw_halo_vel(self):
+        vR = np.random.normal(N_HALO)
+        vz = np.random.normal(N_HALO)
+        vphi = np.random.normal(N_HALO)
+
+        vR *= self.sigma_R
+        vz *= self.sigma_z
+        vphi *= self.sigma_phi
+
+        vR += self.ave_R
+        vz += self.ave_z
+        vphi += self.ave_phi
+
+        R = np.linalg.norm(self.halo_pos[:, :2], axis=1)
+
+        vx = vR * self.halo_pos[:,0] / R - vphi * self.halo_pos[:,1] / R
+        vy = vR * self.halo_pos[:,1] / R + vphi * self.halo_pos[:,0] / R
+
+        self.halo_vel = np.transpose([vx, vy, vz])
+        
+
 
 if __name__ == '__main__':
     CC = 11.0
