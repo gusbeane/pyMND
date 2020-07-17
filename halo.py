@@ -62,15 +62,14 @@ def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor
 
     rho = (M / (2*u.PI)) * (a/r) * np.power(rplusa, -3.)
 
-    print('rho=', rho, 'M=', M, 'a=', a, 'rplusa=', rplusa)
-    print('R/rho*deriv=', (R/rho)*partial_rhosigma, R, rho)
-    print('deriv=', partial_rhosigma)
-    print('vc_sq=', vcirc_squared)
-
     vphi_squared = vRz_squared + (R/rho) * partial_rhosigma + vcirc_squared
     ave_phi = halo_spinfactor * np.sqrt(vcirc_squared)
 
-    sigma_phi = np.sqrt(vphi_squared - np.square(ave_phi))
+    sigma_phi = vphi_squared - np.square(ave_phi)
+    # unstable as r -> inf
+    sigma_phi[sigma_phi < 0] = 0
+    sigma_phi = np.sqrt(sigma_phi)
+
     sigma_R = np.sqrt(vRz_squared)
     sigma_z = np.copy(sigma_R)
     ave_R = np.zeros(len(sigma_R))
