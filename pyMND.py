@@ -99,11 +99,11 @@ class pyMND(object):
         
         self.ave_R, self.ave_z, self.ave_phi = ave_R, ave_z, ave_phi
         self.sigma_R, self.sigma_z, self.sigma_phi = sigma_R, sigma_z, sigma_phi
-    
+
     def _draw_halo_vel(self):
-        vR = np.random.normal(N_HALO)
-        vz = np.random.normal(N_HALO)
-        vphi = np.random.normal(N_HALO)
+        vR = np.random.normal(size=N_HALO)
+        vz = np.random.normal(size=N_HALO)
+        vphi = np.random.normal(size=N_HALO)
 
         vR *= self.sigma_R
         vz *= self.sigma_z
