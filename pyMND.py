@@ -132,6 +132,7 @@ class pyMND(object):
 
         ics.part1.pos[:] = self.halo_pos
         ics.part1.vel[:] = self.halo_vel
+        ics.part1.id[:] = np.arange(1, self.N_HALO+1)
 
         ics.write()
 
