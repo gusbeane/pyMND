@@ -3,3 +3,4 @@ ics.hdf5
 __pycache__/
 .ipynb_checkpoints
 
+MW_ICs.hdf5
