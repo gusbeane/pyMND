@@ -2,6 +2,8 @@ import numpy as np
 from math import log, sqrt, pow
 from scipy.integrate import romberg
 
+import arepo
+
 from units import pyMND_units
 from halo import *
 
@@ -31,6 +33,9 @@ class pyMND(object):
 
         # draw velocities
         self._draw_halo_vel()
+
+        # output to file
+        self._output_ics_file()
 
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
@@ -69,7 +74,6 @@ class pyMND(object):
     def circular_velocity_squared(self, pos):
         R = np.linalg.norm(pos[:,:2], axis=1)
         partial_phi = self.potential_derivative_R(pos)
-        print(R, partial_phi)
         return R * partial_phi
 
     def _draw_halo_pos(self):
@@ -115,7 +119,22 @@ class pyMND(object):
         vy = vR * self.halo_pos[:,1] / R + vphi * self.halo_pos[:,0] / R
 
         self.halo_vel = np.transpose([vx, vy, vz])
+    
+    def _output_ics_file(self):
+        npart = [0, self.N_HALO, 0, 0, 0, 0]
+        masses = [0, self.M_HALO/self.N_HALO, 0, 0, 0, 0]
+
+        out_file = self.OutputDir + '/' + self.OutputFile
+        if out_file[5:] != '.hdf5' and out_file[3:] != '.h5':
+            out_file += '.hdf5'
         
+        ics = arepo.ICs(out_file, npart, masses=masses)
+
+        ics.part1.pos[:] = self.halo_pos
+        ics.part1.vel[:] = self.halo_vel
+
+        ics.write()
+
 
 
 if __name__ == '__main__':
