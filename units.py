@@ -53,4 +53,4 @@ class pyMND_units(object):
         self.GRAVITY = 6.6738e-8
 
 if __name__ == '__main__':
-    u = pyMND_units()
+    u = pyMND_units(1.0)

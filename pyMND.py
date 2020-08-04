@@ -4,10 +4,13 @@ from math import log, sqrt, exp
 
 from units import pyMND_units
 from halo import *
+from gas_halo import *
 from util import *
+from potential import *
 
 class pyMND(object):
-    def __init__(self, CC, V200, LAMBDA, N_HALO, 
+    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, 
+                 MGH,
                  HubbleParam,
                  OutputDir, OutputFile):
 
@@ -15,6 +18,10 @@ class pyMND(object):
         self.V200 = V200
         self.LAMBDA = LAMBDA
         self.N_HALO = N_HALO
+        self.N_GAS = N_GAS
+
+        self.MGH = MGH
+
         self.OutputDir = OutputDir
         self.OutputFile = OutputFile
         self.HubbleParam = HubbleParam
@@ -45,8 +52,9 @@ class pyMND(object):
 
         self.M_DISK = 0.
         self.M_BULGE = 0.
+        self.M_GASHALO = self.MGH * self.M200
 
-        self.M_HALO = self.M200 - self.M_DISK - self.M_BULGE
+        self.M_HALO = self.M200 - self.M_DISK - self.M_BULGE - self.M_GASHALO
 
         self.RH = self.RS * sqrt(2. * (log(1+self.CC) - self.CC / (1. + self.CC)))
 
@@ -55,19 +63,15 @@ class pyMND(object):
         self.halo_spinfactor = 1.5 * self.LAMBDA * sqrt(2 * self.CC / fc(self.CC))
         self.halo_spinfactor *= pow(log(1 + self.CC) - self.CC / (1 + self.CC), 1.5) / gc(self.CC)
     
-    def potential(self, pos):
-        return halo_potential(pos, self.M_HALO, self.RH, self.u)
-    
-    def potential_derivative_R(self, pos):
-        return halo_potential_derivative_R(pos, self.M_HALO, self.RH, self.u)
-    
     def circular_velocity_squared(self, pos):
         R = np.linalg.norm(pos[:,:2], axis=1)
-        partial_phi = self.potential_derivative_R(pos)
+        partial_phi = potential_derivative_R(pos, self.M_HALO, self.RH, self.M_GASHALO, self.u)
         return R * partial_phi
     
     def _draw_pos(self):
         self.halo_pos = draw_halo_pos(self.N_HALO, self.RH, self.u)
+        if self.M_GASHALO > 0.0:
+            self.gashalo_pos = draw_gas_halo_pos(self.N_GAS, self.RH, self.u)
 
     def _compute_vel_disp_halo(self):
         vcirc_squared = self.circular_velocity_squared(self.halo_pos)
@@ -121,9 +125,11 @@ if __name__ == '__main__':
     CC = 11.0
     V200 = 163.
     LAMBDA = 0.035
-    N_HALO = 396060
+    N_GAS = 39606
+    N_HALO = 396060 - N_GAS
+    MGH = 0.1
     HubbleParam = 1.0
     OutputDir='./'
     OutputFile='MW_ICs'
-    t = pyMND(CC, V200, LAMBDA, N_HALO, HubbleParam, OutputDir, OutputFile)
+    t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, HubbleParam, OutputDir, OutputFile)
     
