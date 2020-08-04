@@ -25,7 +25,7 @@ class pyMND(object):
         self._structure()
 
         # draw positions
-        self._draw_halo_pos()
+        self._draw_pos()
 
         # compute velocity dispersions
         self._compute_vel_disp_halo()
@@ -65,21 +65,10 @@ class pyMND(object):
         R = np.linalg.norm(pos[:,:2], axis=1)
         partial_phi = self.potential_derivative_R(pos)
         return R * partial_phi
-
-    def _draw_halo_pos(self):
-        r = halo_draw_r(self.N_HALO, self.RH)
-        phi = np.multiply(2.*self.u.PI, np.random.rand(self.N_HALO))
-        theta = np.arccos(np.random.rand(self.N_HALO) * 2. - 1.)
-
-        stheta = np.sin(theta)
-        ctheta = np.cos(theta)
-
-        xp_halo = np.multiply(np.multiply(r, stheta), np.cos(phi))
-        yp_halo = np.multiply(np.multiply(r, stheta), np.sin(phi))
-        zp_halo = np.multiply(r, ctheta)
-        self.halo_pos = np.transpose([xp_halo, yp_halo, zp_halo])
-        return
     
+    def _draw_pos(self):
+        self.halo_pos = draw_halo_pos(self.N_HALO, self.RH, self.u)
+
     def _compute_vel_disp_halo(self):
         vcirc_squared = self.circular_velocity_squared(self.halo_pos)
         

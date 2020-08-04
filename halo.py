@@ -31,6 +31,20 @@ def halo_draw_r(N, a):
     
     return np.multiply(rt, a)
 
+def draw_halo_pos(N, a, u):
+        r = halo_draw_r(N, a)
+        phi = np.multiply(2.*u.PI, np.random.rand(N))
+        theta = np.arccos(np.random.rand(N) * 2. - 1.)
+
+        stheta = np.sin(theta)
+        ctheta = np.cos(theta)
+
+        xp_halo = np.multiply(np.multiply(r, stheta), np.cos(phi))
+        yp_halo = np.multiply(np.multiply(r, stheta), np.sin(phi))
+        zp_halo = np.multiply(r, ctheta)
+        halo_pos = np.transpose([xp_halo, yp_halo, zp_halo])
+        return halo_pos
+
 def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor):
     prefactor = u.G * M / a
     r = np.linalg.norm(pos, axis=1)
