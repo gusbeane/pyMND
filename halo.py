@@ -89,3 +89,34 @@ def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor
     ave_z = np.zeros(len(sigma_z))
 
     return ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi
+
+def _compute_vel_disp_halo(self):
+        ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
+            compute_velocity_ellipsoid_halo(self.halo_pos, self.M_HALO, self.RH,
+                                            self.u, vcirc_squared, self.halo_spinfactor)
+        
+        self.ave_R, self.ave_z, self.ave_phi = ave_R, ave_z, ave_phi
+        self.sigma_R, self.sigma_z, self.sigma_phi = sigma_R, sigma_z, sigma_phi
+
+def draw_halo_vel(pos, vcsq, N, M, a, lam, u):
+    ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
+            compute_velocity_ellipsoid_halo(pos, M, a, u, vcsq, lam)
+
+    vR = np.random.normal(size=N)
+    vz = np.random.normal(size=N)
+    vphi = np.random.normal(size=N)
+
+    vR *= sigma_R
+    vz *= sigma_z
+    vphi *= sigma_phi
+
+    vR += ave_R
+    vz += ave_z
+    vphi += ave_phi
+
+    R = np.linalg.norm(pos[:, :2], axis=1)
+
+    vx = vR * pos[:,0] / R - vphi * pos[:,1] / R
+    vy = vR * pos[:,1] / R + vphi * pos[:,0] / R
+
+    return np.transpose([vx, vy, vz])

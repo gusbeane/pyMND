@@ -34,11 +34,8 @@ class pyMND(object):
         # draw positions
         self._draw_pos()
 
-        # compute velocity dispersions
-        self._compute_vel_disp_halo()
-
         # draw velocities
-        self._draw_halo_vel()
+        self._draw_vel()
 
         # output to file
         self._output_ics_file()
@@ -73,35 +70,9 @@ class pyMND(object):
         if self.M_GASHALO > 0.0:
             self.gashalo_pos = draw_gas_halo_pos(self.N_GAS, self.RH, self.u)
 
-    def _compute_vel_disp_halo(self):
-        vcirc_squared = self.circular_velocity_squared(self.halo_pos)
-        
-        ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
-            compute_velocity_ellipsoid_halo(self.halo_pos, self.M_HALO, self.RH,
-                                            self.u, vcirc_squared, self.halo_spinfactor)
-        
-        self.ave_R, self.ave_z, self.ave_phi = ave_R, ave_z, ave_phi
-        self.sigma_R, self.sigma_z, self.sigma_phi = sigma_R, sigma_z, sigma_phi
-
-    def _draw_halo_vel(self):
-        vR = np.random.normal(size=N_HALO)
-        vz = np.random.normal(size=N_HALO)
-        vphi = np.random.normal(size=N_HALO)
-
-        vR *= self.sigma_R
-        vz *= self.sigma_z
-        vphi *= self.sigma_phi
-
-        vR += self.ave_R
-        vz += self.ave_z
-        vphi += self.ave_phi
-
-        R = np.linalg.norm(self.halo_pos[:, :2], axis=1)
-
-        vx = vR * self.halo_pos[:,0] / R - vphi * self.halo_pos[:,1] / R
-        vy = vR * self.halo_pos[:,1] / R + vphi * self.halo_pos[:,0] / R
-
-        self.halo_vel = np.transpose([vx, vy, vz])
+    def _draw_vel(self):
+        vcsq = self.circular_velocity_squared(self.halo_pos)
+        self.halo_vel = draw_halo_vel(self.halo_pos, vcsq, self.N_HALO, self.M_HALO, self.RH, self.halo_spinfactor, self.u)
     
     def _output_ics_file(self):
         npart = [0, self.N_HALO, 0, 0, 0, 0]
