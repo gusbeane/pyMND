@@ -24,7 +24,6 @@ def halo_potential_derivative_z(pos, M, a, u):
 
     return ans
 
-
 def halo_draw_r(N, a):
     f = np.random.rand(N)
     sqrtf = np.sqrt(f)

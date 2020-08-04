@@ -1,11 +1,10 @@
 import numpy as np
-from math import log, sqrt, pow
-from scipy.integrate import romberg
-
 import arepo
+from math import log, sqrt, exp
 
 from units import pyMND_units
 from halo import *
+from util import *
 
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, 
@@ -51,19 +50,10 @@ class pyMND(object):
 
         self.RH = self.RS * sqrt(2. * (log(1+self.CC) - self.CC / (1. + self.CC)))
 
-        self.jhalo = self.LAMBDA * sqrt(self.u.G) * self.M200**(1.5) * sqrt(2 * self.R200 / self.fc(self.CC))
+        self.jhalo = self.LAMBDA * sqrt(self.u.G) * self.M200**(1.5) * sqrt(2 * self.R200 / fc(self.CC))
     
-        self.halo_spinfactor = 1.5 * self.LAMBDA * sqrt(2 * self.CC / self.fc(self.CC))
-        self.halo_spinfactor *= pow(log(1 + self.CC) - self.CC / (1 + self.CC), 1.5) / self.gc(self.CC)
-
-    def fc(self, c):
-        return c * (0.5 - 0.5 / pow(1 + c, 2) - log(1 + c) / (1 + c)) / pow(log(1 + c) - c / (1 + c), 2)
-    
-    def gc(self, c):
-        return romberg(self.gc_int, 0, c)
-
-    def gc_int(self, x):
-        return pow(log(1 + x) - x / (1 + x), 0.5) * pow(x, 1.5) / pow(1 + x, 2)
+        self.halo_spinfactor = 1.5 * self.LAMBDA * sqrt(2 * self.CC / fc(self.CC))
+        self.halo_spinfactor *= pow(log(1 + self.CC) - self.CC / (1 + self.CC), 1.5) / gc(self.CC)
     
     def potential(self, pos):
         return halo_potential(pos, self.M_HALO, self.RH, self.u)

@@ -1,4 +1,16 @@
-import numpy as np 
+from math import log, sqrt, pow
+
+import numpy as np
+from scipy.integrate import romberg
+
+def fc(c):
+    return c * (0.5 - 0.5 / pow(1 + c, 2) - log(1 + c) / (1 + c)) / pow(log(1 + c) - c / (1 + c), 2)
+    
+def gc(c):
+    return romberg(gc_int, 0, c)
+
+def gc_int(x):
+    return pow(log(1 + x) - x / (1 + x), 0.5) * pow(x, 1.5) / pow(1 + x, 2)
 
 def rejection_sample(fn, maxval, N, xrng=[0, 1], overshoot=2., dtype=np.longdouble, fn_args={}):
 	xwidth = xrng[1] - xrng[0]
