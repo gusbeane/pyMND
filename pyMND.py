@@ -68,14 +68,14 @@ class pyMND(object):
     def _draw_pos(self):
         self.halo_pos = draw_halo_pos(self.N_HALO, self.RH, self.u)
         if self.M_GASHALO > 0.0:
-            self.gashalo_pos = draw_gas_halo_pos(self.N_GAS, self.RH, self.u)
+            self.N_GAS, self.gashalo_pos, self.gashalo_mass = draw_gas_halo_pos(self.N_GAS, self.M_GASHALO, self.RH, self.R200)
 
     def _draw_vel(self):
         vcsq = self.circular_velocity_squared(self.halo_pos)
         self.halo_vel = draw_halo_vel(self.halo_pos, vcsq, self.N_HALO, self.M_HALO, self.RH, self.halo_spinfactor, self.u)
     
     def _output_ics_file(self):
-        npart = [0, self.N_HALO, 0, 0, 0, 0]
+        npart = [self.N_GAS, self.N_HALO, 0, 0, 0, 0]
         masses = [0, self.M_HALO/self.N_HALO, 0, 0, 0, 0]
 
         out_file = self.OutputDir + '/' + self.OutputFile
@@ -83,10 +83,18 @@ class pyMND(object):
             out_file += '.hdf5'
         
         ics = arepo.ICs(out_file, npart, masses=masses)
+        id0 = 1
+        if self.M_GASHALO > 0.0:
+            ics.part0.pos[:] = self.gashalo_pos
+            ics.part0.mass[:] = self.gashalo_mass
+            # ics.part0.vel[:] = self.gashalo_vel
+            ics.part0.id[:] = np.arange(id0, id0 + self.N_GAS)
+            id0 += self.N_GAS
 
         ics.part1.pos[:] = self.halo_pos
         ics.part1.vel[:] = self.halo_vel
-        ics.part1.id[:] = np.arange(1, self.N_HALO+1)
+        ics.part1.id[:] = np.arange(id0, id0 + self.N_HALO)
+        id0 += self.N_HALO
 
         ics.write()
 
