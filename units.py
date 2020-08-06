@@ -25,6 +25,8 @@ class pyMND_units(object):
         
         self.HubbleParam = HubbleParam
         self.H0 = self.HubbleParam * 100 * 1e5 / self.CM_PER_MPC / self.UnitVelocity_in_cm_per_s * self.UnitLength_in_cm
+
+        self.TFLOOR = 1e4 # Temperature floor in kelvin
     
     def _set_physical_constants(self):
         self.GAMMA = 5./3.

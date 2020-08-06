@@ -24,6 +24,8 @@ def gas_halo_thermal_energy(pos, M, a, u):
     r = np.linalg.norm(pos, axis=1)
     T = gas_halo_temperature(r, M, a, u)
 
+    T[T < u.TFLOOR] = u.TFLOOR
+
     meanweight = 4 / (8 - 5 * (1 - u.HYDROGEN_MASSFRAC))
     energy = 1 / meanweight * (1.0 / u.GAMMA_MINUS1) * (u.BOLTZMANN / u.PROTONMASS) * T
     energy *= u.UnitMass_in_g / u.UnitEnergy_in_cgs
