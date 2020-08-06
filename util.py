@@ -2,6 +2,7 @@ from math import log, sqrt, pow
 
 import numpy as np
 from scipy.integrate import romberg
+from numba import njit
 
 def fc(c):
     return c * (0.5 - 0.5 / pow(1 + c, 2) - log(1 + c) / (1 + c)) / pow(log(1 + c) - c / (1 + c), 2)
@@ -42,4 +43,25 @@ def rejection_sample(fn, maxval, N, xrng=[0, 1], overshoot=2., dtype=np.longdoub
 
 	return sample_list[:N]
 
+@njit
+def draw_golden_spiral(N, random_orientation=False):
 
+    pos = np.zeros((N, 3))
+
+    indices = np.arange(0, N) + 0.5
+
+    phi = np.arccos(1. - 2.*indices/N)
+    theta = np.pi * (1. + 5.**0.5) * indices
+
+    if random_orientation:
+        phi0 = np.multiply(2.*np.pi, np.random.rand())
+        theta0 = np.arccos(np.random.rand() * 2. - 1.)
+        phi -= phi0
+        theta -= theta0
+
+    x, y, z = np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)
+    pos[:,0] = x
+    pos[:,1] = y
+    pos[:,2] = z
+
+    return pos
