@@ -108,7 +108,10 @@ def draw_gas_halo_pos(N, M, a, Rmax):
 
         # now assign this sphere's positions
         gas_halo_pos[i:i+Nn] = (Rn1 + rn) * draw_golden_spiral(Nn, random_orientation=False)
-        gas_halo_mass[i:i+Nn] = gas_halo_density(gas_halo_pos[i:i+Nn], M, a)
+        
+        # now assign the density
+        Venc = (4.*np.pi/3.) * ((Rn1+2.*rn)**3 - Rn1**3)
+        gas_halo_mass[i:i+Nn] = Nn * mg / Venc
 
         Rn1 += 2*rn
         ct += 1
