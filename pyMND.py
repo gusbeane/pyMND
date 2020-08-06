@@ -1,6 +1,7 @@
 import numpy as np
 import arepo
 from math import log, sqrt, exp
+from scipy.spatial import Delaunay
 
 from units import pyMND_units
 from halo import *
@@ -8,11 +9,12 @@ from gas_halo import *
 from util import *
 from potential import *
 
+from tqdm import tqdm
+
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, 
-                 MGH,
-                 HubbleParam,
-                 GasHaloSpinFraction,
+                 MGH, GasHaloSpinFraction,
+                 HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
         self.CC = CC
@@ -28,6 +30,8 @@ class pyMND(object):
         self.OutputDir = OutputDir
         self.OutputFile = OutputFile
         self.HubbleParam = HubbleParam
+        self.BoxSize = BoxSize
+        self.AddBackgroundGrid = AddBackgroundGrid
 
         self.u = pyMND_units(self.HubbleParam)
 
@@ -42,6 +46,9 @@ class pyMND(object):
 
         # get temperature of gas
         self._get_gas_thermal_energy()
+
+        # add background grid of cells
+        self._add_background_grid()
 
         # output to file
         self._output_ics_file()
@@ -89,6 +96,38 @@ class pyMND(object):
     def _get_gas_thermal_energy(self):
         if self.M_GASHALO > 0.0:
             self.gashalo_u = gas_halo_thermal_energy(self.gashalo_pos, self.M_GASHALO, self.RH, self.u)
+    
+    def _add_background_grid(self):
+        if self.AddBackgroundGrid == 0:
+            return
+        
+        # first shift the gas distribution
+        self.gashalo_pos += np.array([self.BoxSize/2.0, self.BoxSize/2.0, self.BoxSize/2.0])
+
+        # next find the convex hull of the gas distribution
+        hull = Delaunay(self.gashalo_pos)
+
+        # now iterate and insert background points if they are not in the convex hull
+        bg_1d_pos = self.BoxSize * (np.arange(0, self.AddBackgroundGrid) + 0.5) / self.AddBackgroundGrid
+        bg_points = gen_3D_grid(bg_1d_pos)
+
+        outside_hull = np.where(hull.find_simplex(bg_points) < 0.0)[0]
+        bg_points = bg_points[outside_hull]
+
+        # construct arrays
+        Nbgpoints = len(bg_points)
+        self.gashalo_pos = np.concatenate((self.gashalo_pos, bg_points))
+        self.gashalo_vel = np.concatenate((self.gashalo_vel, np.zeros((Nbgpoints, 3))))
+        self.gashalo_u = np.concatenate((self.gashalo_u, np.zeros(Nbgpoints)))
+        self.gashalo_mass = np.concatenate((self.gashalo_mass, np.zeros(Nbgpoints)))
+        self.N_GAS += Nbgpoints
+
+        # some sanity checks
+        assert len(self.gashalo_pos) == self.N_GAS
+        assert len(self.gashalo_vel) == self.N_GAS
+        assert len(self.gashalo_u) == self.N_GAS
+        assert len(self.gashalo_mass) == self.N_GAS
+        return
 
     def _output_ics_file(self):
         npart = [self.N_GAS, self.N_HALO, 0, 0, 0, 0]
@@ -126,7 +165,10 @@ if __name__ == '__main__':
     MGH = 0.1
     GasHaloSpinFraction = 1.0
     HubbleParam = 1.0
+    BoxSize=1200.0
+    AddBackgroundGrid = 16
     OutputDir='./'
     OutputFile='MW_ICs'
-    t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction, HubbleParam, OutputDir, OutputFile)
+    t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction, HubbleParam, BoxSize, 
+              AddBackgroundGrid, OutputDir, OutputFile)
     

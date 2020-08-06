@@ -3,6 +3,7 @@ from math import log, sqrt, pow
 import numpy as np
 from scipy.integrate import romberg
 from numba import njit
+from scipy.optimize import linprog
 
 def fc(c):
     return c * (0.5 - 0.5 / pow(1 + c, 2) - log(1 + c) / (1 + c)) / pow(log(1 + c) - c / (1 + c), 2)
@@ -65,3 +66,17 @@ def draw_golden_spiral(N, random_orientation=False):
     pos[:,2] = z
 
     return pos
+
+@njit
+def gen_3D_grid(t):
+    N = len(t)**3
+    grid = np.zeros((N, 3))
+    ct = 0
+    for x in t:
+        for y in t:
+            for z in t:
+                grid[ct][0] = x
+                grid[ct][1] = y
+                grid[ct][2] = z
+                ct += 1
+    return grid
