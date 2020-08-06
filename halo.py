@@ -1,4 +1,12 @@
 import numpy as np
+from numba import njit
+
+@njit
+def halo_density(pos, M, a):
+    # r = np.linalg.norm(pos, axis=1)
+    r = np.sqrt(pos[:,0]**2 + pos[:,1]**2 + pos[:,2]**2)
+    rho = (M/(2.*np.pi)) * (a/r) * (r+a)**(-3.)
+    return rho
 
 def halo_potential(pos, M, a, u):
     r = np.linalg.norm(pos, axis=1)
@@ -89,14 +97,6 @@ def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor
     ave_z = np.zeros(len(sigma_z))
 
     return ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi
-
-def _compute_vel_disp_halo(self):
-        ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
-            compute_velocity_ellipsoid_halo(self.halo_pos, self.M_HALO, self.RH,
-                                            self.u, vcirc_squared, self.halo_spinfactor)
-        
-        self.ave_R, self.ave_z, self.ave_phi = ave_R, ave_z, ave_phi
-        self.sigma_R, self.sigma_z, self.sigma_phi = sigma_R, sigma_z, sigma_phi
 
 def draw_halo_vel(pos, vcsq, N, M, a, lam, u):
     ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
