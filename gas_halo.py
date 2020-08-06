@@ -105,4 +105,13 @@ def draw_gas_halo_pos(N, M, a, Rmax):
     
     return i, gas_halo_pos[:i], gas_halo_mass[:i]
 
+def draw_gas_halo_vel(pos, vcsq, halo_spinfactor, GasHaloSpinFraction):
+    vphi = halo_spinfactor * GasHaloSpinFraction * np.sqrt(vcsq)
 
+    R = np.linalg.norm(pos[:, :2], axis=1)
+
+    vel = np.zeros(np.shape(pos))
+    vel[:,0] = - vphi * pos[:,1] / R
+    vel[:,1] = vphi * pos[:,0] / R
+
+    return vel

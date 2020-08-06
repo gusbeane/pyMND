@@ -12,6 +12,7 @@ class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, 
                  MGH,
                  HubbleParam,
+                 GasHaloSpinFraction,
                  OutputDir, OutputFile):
 
         self.CC = CC
@@ -21,6 +22,8 @@ class pyMND(object):
         self.N_GAS = N_GAS
 
         self.MGH = MGH
+
+        self.GasHaloSpinFraction = GasHaloSpinFraction
 
         self.OutputDir = OutputDir
         self.OutputFile = OutputFile
@@ -73,6 +76,10 @@ class pyMND(object):
     def _draw_vel(self):
         vcsq = self.circular_velocity_squared(self.halo_pos)
         self.halo_vel = draw_halo_vel(self.halo_pos, vcsq, self.N_HALO, self.M_HALO, self.RH, self.halo_spinfactor, self.u)
+
+        if self.M_GASHALO > 0.0:
+            vcsq = self.circular_velocity_squared(self.gashalo_pos)
+            self.gashalo_vel = draw_gas_halo_vel(self.gashalo_pos, vcsq, self.halo_spinfactor, self.GasHaloSpinFraction)
     
     def _output_ics_file(self):
         npart = [self.N_GAS, self.N_HALO, 0, 0, 0, 0]
@@ -87,7 +94,7 @@ class pyMND(object):
         if self.M_GASHALO > 0.0:
             ics.part0.pos[:] = self.gashalo_pos
             ics.part0.mass[:] = self.gashalo_mass
-            # ics.part0.vel[:] = self.gashalo_vel
+            ics.part0.vel[:] = self.gashalo_vel
             ics.part0.id[:] = np.arange(id0, id0 + self.N_GAS)
             id0 += self.N_GAS
 
@@ -107,8 +114,9 @@ if __name__ == '__main__':
     N_GAS = 39606
     N_HALO = 396060 - N_GAS
     MGH = 0.1
+    GasHaloSpinFraction = 1.0
     HubbleParam = 1.0
     OutputDir='./'
     OutputFile='MW_ICs'
-    t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, HubbleParam, OutputDir, OutputFile)
+    t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction, HubbleParam, OutputDir, OutputFile)
     
