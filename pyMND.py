@@ -54,6 +54,7 @@ class pyMND(object):
         self._output_ics_file()
 
         print('R200=', self.R200, 'M200=', self.M200, 'R200/a=', self.R200/self.RH)
+        print('WARNING: gas masses are actually densities, you must enable MESHRELAX_DENSITY_IN_INPUT in arepo!!')
 
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
