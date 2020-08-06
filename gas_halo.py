@@ -55,6 +55,13 @@ def draw_gas_halo_pos(N, M, a, Rmax):
     i += 1
     r0 = (2. * mg + 2. * np.sqrt(mg)) / (2 * (1. - mg))
 
+    # Offset the position of the cell by 1e-9 just so we dont have to deal with undefined behavior for r
+    # close to 0.
+    phi = np.multiply(2.*np.pi, np.random.rand())
+    theta = np.arccos(np.random.rand() * 2. - 1.)
+    x, y, z = np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)
+    gas_halo_pos[0] = 1e-9 * np.array([x, y, z])
+
     # To set the density of the first cell, just use the density of a sphere of radius r0
     gas_halo_mass[0] = mg / ((4.*np.pi/3.) * r0**3.)
 
