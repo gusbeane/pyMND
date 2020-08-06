@@ -4,3 +4,4 @@ __pycache__/
 .ipynb_checkpoints
 
 MW_ICs.hdf5
+timing.dat
