@@ -46,6 +46,8 @@ class pyMND(object):
         # output to file
         self._output_ics_file()
 
+        print('R200=', self.R200, 'M200=', self.M200, 'R200/a=', self.R200/self.RH)
+
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
         self.R200 = self.V200 / (10 * self.u.H0)
@@ -119,8 +121,8 @@ if __name__ == '__main__':
     CC = 11.0
     V200 = 163.
     LAMBDA = 0.035
-    N_GAS = 39606
-    N_HALO = 396060 - N_GAS
+    N_GAS = 208333
+    N_HALO = 375000
     MGH = 0.1
     GasHaloSpinFraction = 1.0
     HubbleParam = 1.0
