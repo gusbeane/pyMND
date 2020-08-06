@@ -40,6 +40,9 @@ class pyMND(object):
         # draw velocities
         self._draw_vel()
 
+        # get temperature of gas
+        self._get_gas_thermal_energy()
+
         # output to file
         self._output_ics_file()
 
@@ -81,6 +84,10 @@ class pyMND(object):
             vcsq = self.circular_velocity_squared(self.gashalo_pos)
             self.gashalo_vel = draw_gas_halo_vel(self.gashalo_pos, vcsq, self.halo_spinfactor, self.GasHaloSpinFraction)
     
+    def _get_gas_thermal_energy(self):
+        if self.M_GASHALO > 0.0:
+            self.gashalo_u = gas_halo_thermal_energy(self.gashalo_pos, self.M_GASHALO, self.RH, self.u)
+
     def _output_ics_file(self):
         npart = [self.N_GAS, self.N_HALO, 0, 0, 0, 0]
         masses = [0, self.M_HALO/self.N_HALO, 0, 0, 0, 0]
@@ -95,6 +102,7 @@ class pyMND(object):
             ics.part0.pos[:] = self.gashalo_pos
             ics.part0.mass[:] = self.gashalo_mass
             ics.part0.vel[:] = self.gashalo_vel
+            ics.part0.u[:] = self.gashalo_u
             ics.part0.id[:] = np.arange(id0, id0 + self.N_GAS)
             id0 += self.N_GAS
 

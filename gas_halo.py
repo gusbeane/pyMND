@@ -4,6 +4,7 @@ from util import *
 from numba import njit
 
 def gas_halo_temperature(r, M, a, u):
+    # TODO: check for if T < 1e4 K, maybe set T floor at 1e4 K?
     meanweight = 4 / (8 - 5 * (1 - u.HYDROGEN_MASSFRAC)) # assume full ionization, in units of proton mass
     mu = meanweight * u.PROTONMASS / u.UnitMass_in_g
     kB = u.BOLTZMANN / u.UnitEnergy_in_cgs
@@ -17,6 +18,17 @@ def gas_halo_temperature(r, M, a, u):
 
     ans *= (mu / kB) * G * M / a
     return ans
+
+def gas_halo_thermal_energy(pos, M, a, u):
+    # TODO: fix for if the T is < 1e4 K
+    r = np.linalg.norm(pos, axis=1)
+    T = gas_halo_temperature(r, M, a, u)
+
+    meanweight = 4 / (8 - 5 * (1 - u.HYDROGEN_MASSFRAC))
+    energy = 1 / meanweight * (1.0 / u.GAMMA_MINUS1) * (u.BOLTZMANN / u.PROTONMASS) * T
+    energy *= u.UnitMass_in_g / u.UnitEnergy_in_cgs
+
+    return energy
 
 def gas_halo_potential(pos, M, a, u):
     return halo_potential(pos, M, a, u)
