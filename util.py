@@ -45,9 +45,37 @@ def rejection_sample(fn, maxval, N, xrng=[0, 1], overshoot=2., dtype=np.longdoub
 	return sample_list[:N]
 
 @njit
+def R2_method(N):
+    g = 1.32471795724474602596
+    a1 = 1.0/g
+    a2 = 1.0/(g*g)
+
+    x = np.zeros(N)
+    y = np.zeros(N)
+
+    x[0], y[0] = 0.5, 0.5
+
+    for i in range(1, N):
+        x[i] = np.mod(x[i-1] + a1, 1.0)
+        y[i] = np.mod(y[i-1] + a2, 1.0)
+    
+    return x, y
+
+@njit
 def draw_golden_spiral(N, random_orientation=False):
 
     pos = np.zeros((N, 3))
+
+    phi = 0
+    theta = 0
+    golden = (1. + 5.**0.5)/2.
+    for i in range(N):
+        pos[i][0] = np.cos(phi) * np.sin(theta)
+        pos[i][1] = np.sin(phi) * np.sin(theta)
+        pos[i][2] = np.cos(theta)
+
+        phi += golden/np.sin(theta)
+        theta += golden
 
     indices = np.arange(0, N) + 0.5
 

@@ -53,74 +53,29 @@ def goodness(Rn1, mg, Nn):
 
     return np.abs(mass_rn - size_rn), mass_rn, size_rn
 
-@njit
 def draw_gas_halo_pos(N, M, a, Rmax):
     # We have a target gas cell mass, in units of M:
     mg = M/N
     print('mg=', mg, 'N=', N)
 
-    # Initialize gas halo positions.
-    gas_halo_pos = np.zeros((N, 3))
-    gas_halo_mass = np.zeros(N)
-    i = 0
+    u, v = R2_method(N)
+    phi = 2.*np.pi * u
+    theta = np.arccos(2.*v - 1)
 
-    # We first place a cell at the origin, and then determine its radius based on the enclosed
-    # mass matching the target mass.
-    i += 1
-    r0 = (2. * mg + 2. * np.sqrt(mg)) / (2 * (1. - mg))
+    f = np.arange(0.5, N)/N
+    sqrtf = np.sqrt(f)
+    r = a * sqrtf / (1. - sqrtf)
 
-    # Offset the position of the cell by 1e-9 just so we dont have to deal with undefined behavior for r
-    # close to 0.
-    phi = np.multiply(2.*np.pi, np.random.rand())
-    theta = np.arccos(np.random.rand() * 2. - 1.)
-    x, y, z = np.cos(theta) * np.sin(phi), np.sin(theta) * np.sin(phi), np.cos(phi)
-    gas_halo_pos[0] = 1e-9 * np.array([x, y, z])
-
-    # To set the density of the first cell, just use the density of a sphere of radius r0
-    gas_halo_mass[0] = mg / ((4.*np.pi/3.) * r0**3.)
-
-    Rn1 = r0
-    # Now we iteratively place shells of N gas cells such that each cell has on average the correct
-    # mass and the cells are roughly evenly shaped.
-    ct = 1
-    print('ct=', 0, 'Nn=', 1, 'rn=', r0, 'i=', i, 'N=', N, 'Rn1=', Rn1)
-    while i < N:
-        Nn = 10
-        old_good, old_rn, tmp = goodness(Rn1, mg, Nn)
-        Nn += 1
-        for _ in range(1000000):
-            good, rn, tmp = goodness(Rn1, mg, Nn)
-            if good < old_good:
-                # print('good=', good, 'old_good=', old_good, 'Nn=', Nn)
-                old_good = good
-                old_rn = rn
-                Nn += 1
-            else:
-                good = old_good
-                rn = old_rn
-                Nn -= 1
-                break
-        
-        if i+Nn > N:
-            print('i+Nn > N, something seems wrong in gas halo')
-            break
-        if Rn1 + rn > Rmax:
-            # expected break condition
-            break
-
-        # now assign this sphere's positions
-        gas_halo_pos[i:i+Nn] = (Rn1 + rn) * draw_golden_spiral(Nn, random_orientation=False)
-        
-        # now assign the density
-        Venc = (4.*np.pi/3.) * ((Rn1+2.*rn)**3 - Rn1**3)
-        gas_halo_mass[i:i+Nn] = Nn * mg / Venc
-
-        Rn1 += 2*rn
-        ct += 1
-        i += Nn
+    gas_halo_pos = np.transpose([r * np.cos(phi) * np.sin(theta),
+                                 r * np.sin(phi) * np.sin(theta),
+                                 r * np.cos(theta)])
     
+    key = np.where(r < Rmax)[0]
+    N = len(key)
+    gas_halo_pos = gas_halo_pos[key]
+    gas_halo_mass = np.full(N, mg)
     
-    return i, gas_halo_pos[:i], gas_halo_mass[:i]
+    return N, gas_halo_pos, gas_halo_mass
 
 def draw_gas_halo_vel(pos, vcsq, halo_spinfactor, GasHaloSpinFraction):
     vphi = halo_spinfactor * GasHaloSpinFraction * np.sqrt(vcsq)
