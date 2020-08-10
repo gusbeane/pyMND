@@ -1,7 +1,8 @@
 
-ics.hdf5
+*.hdf5
 __pycache__/
 .ipynb_checkpoints
 
 MW_ICs.hdf5
 timing.dat
+timing-lvl4.dat
