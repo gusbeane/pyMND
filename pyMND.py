@@ -1,7 +1,7 @@
 import numpy as np
 import arepo
 from math import log, sqrt, exp
-from scipy.spatial import Delaunay
+from scipy.spatial import ConvexHull
 
 from units import pyMND_units
 from halo import *
@@ -10,6 +10,7 @@ from util import *
 from potential import *
 
 from tqdm import tqdm
+import time
 
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, 
@@ -106,13 +107,13 @@ class pyMND(object):
         self.gashalo_pos += np.array([self.BoxSize/2.0, self.BoxSize/2.0, self.BoxSize/2.0])
 
         # next find the convex hull of the gas distribution
-        hull = Delaunay(self.gashalo_pos)
+        hull = ConvexHull(self.gashalo_pos)
 
         # now iterate and insert background points if they are not in the convex hull
         bg_1d_pos = self.BoxSize * (np.arange(0, self.AddBackgroundGrid) + 0.5) / self.AddBackgroundGrid
         bg_points = gen_3D_grid(bg_1d_pos)
 
-        outside_hull = np.where(hull.find_simplex(bg_points) < 0.0)[0]
+        outside_hull = np.where([point_in_hull(bg_p, hull) for bg_p in bg_points])[0]
         bg_points = bg_points[outside_hull]
 
         # construct arrays
@@ -161,8 +162,8 @@ if __name__ == '__main__':
     CC = 11.0
     V200 = 163.
     LAMBDA = 0.035
-    N_GAS = 208333
-    N_HALO = 375000
+    N_GAS = 64*208333
+    N_HALO = 64*375000
     MGH = 0.1
     GasHaloSpinFraction = 1.0
     HubbleParam = 1.0

@@ -108,3 +108,8 @@ def gen_3D_grid(t):
                 grid[ct][2] = z
                 ct += 1
     return grid
+
+def point_in_hull(point, hull, tolerance=1e-12): 
+    return all( 
+        (np.dot(eq[:-1], point) + eq[-1] <= tolerance) 
+        for eq in hull.equations) 
