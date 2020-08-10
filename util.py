@@ -22,7 +22,6 @@ def rejection_sample(fn, maxval, N, xrng=[0, 1], overshoot=2., dtype=np.longdoub
 
 	N_needed = np.copy(N)
 	while(N_needed > 0):
-		# print('drawing '+str(int(overshoot*N_needed)) + ' samples...')
 		x = np.random.rand(int(overshoot*N_needed))
 		y = np.random.rand(int(overshoot*N_needed))
 	

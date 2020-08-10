@@ -56,7 +56,6 @@ def goodness(Rn1, mg, Nn):
 def draw_gas_halo_pos(N, M, a, Rmax):
     # We have a target gas cell mass, in units of M:
     mg = M/N
-    print('mg=', mg, 'N=', N)
 
     u, v = R2_method(N)
     phi = 2.*np.pi * u
