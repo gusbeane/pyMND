@@ -3,11 +3,11 @@ import arepo
 from math import log, sqrt, exp
 from scipy.spatial import Delaunay
 
-from units import pyMND_units
-from halo import *
-from gas_halo import *
-from util import *
-from potential import *
+from .units import pyMND_units
+from .halo import *
+from .gas_halo import *
+from .util import *
+from .potential import *
 
 from tqdm import tqdm
 

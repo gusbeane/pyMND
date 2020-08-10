@@ -1,6 +1,6 @@
 import numpy as np
-from halo import halo_potential, halo_potential_derivative_R
-from gas_halo import gas_halo_potential, gas_halo_potential_derivative_R
+from .halo import halo_potential, halo_potential_derivative_R
+from .gas_halo import gas_halo_potential, gas_halo_potential_derivative_R
 
 def potential(pos, M, a, MG, u):
     pot = halo_potential(pos, M, a, u)

@@ -1,6 +1,6 @@
 import numpy as np
-from halo import *
-from util import *
+from .halo import *
+from .util import *
 from numba import njit
 
 def gas_halo_temperature(r, M, a, u):
