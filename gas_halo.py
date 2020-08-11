@@ -57,7 +57,7 @@ def gas_halo_thermal_energy(pos, M, a, u):
         pyMND units class.
     Returns
     -------
-    u : `~numpy.ndarray` of shape `(N)`
+    energy : `~numpy.ndarray` of shape `(N)`
         Equilibrium thermal energy at the given positions.
     """
     r = np.linalg.norm(pos, axis=1)
@@ -66,9 +66,9 @@ def gas_halo_thermal_energy(pos, M, a, u):
     T[T < u.TFLOOR] = u.TFLOOR
 
     meanweight = 4 / (8 - 5 * (1 - u.HYDROGEN_MASSFRAC))
-    u = 1 / meanweight * (1.0 / u.GAMMA_MINUS1) * (u.BOLTZMANN / u.PROTONMASS) * T
-    u *= u.UnitMass_in_g / u.UnitEnergy_in_cgs
-    return u
+    energy = 1 / meanweight * (1.0 / u.GAMMA_MINUS1) * (u.BOLTZMANN / u.PROTONMASS) * T
+    energy *= u.UnitMass_in_g / u.UnitEnergy_in_cgs
+    return energy
 
 def gas_halo_potential(pos, M, a, u):
     """
