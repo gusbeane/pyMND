@@ -1,3 +1,44 @@
+from numba import float64
+from numba.experimental import jitclass
+
+unit_list = ['AVOGADRO',
+             'BOLTZMANN',
+             'C',
+             'CM_PER_MPC',
+             'ELECTRONCHARGE',
+             'ELECTRONMASS',
+             'G',
+             'GAMMA',
+             'GAMMA_MINUS1',
+             'GAS_CONST',
+             'GRAVITY',
+             'H0',
+             'HYDROGEN_MASSFRAC',
+             'HubbleParam',
+             'PI',
+             'PLANCK',
+             'PROTONMASS',
+             'RAD_CONST',
+             'SEC_PER_GIGAYEAR',
+             'SEC_PER_MEGAYEAR',
+             'SEC_PER_YEAR',
+             'SOLAR_LUM',
+             'SOLAR_MASS',
+             'TFLOOR',
+             'THOMPSON',
+             'UnitCoolingRate_in_cgs',
+             'UnitDensity_in_cgs',
+             'UnitEnergy_in_cgs',
+             'UnitLength_in_cm',
+             'UnitMass_in_g',
+             'UnitPressure_in_cgs',
+             'UnitTime_in_Megayears',
+             'UnitTime_in_s',
+             'UnitVelocity_in_cm_per_s']
+
+spec_units = [(unit, float64) for unit in unit_list]
+
+@jitclass(spec_units)
 class pyMND_units(object):
     def __init__(self, HubbleParam,
                        UnitLength_in_cm=3.085678e21, 
