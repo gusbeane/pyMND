@@ -2,9 +2,10 @@ from math import log, sqrt, pow
 
 import numpy as np
 from scipy.integrate import romberg
-from numba import njit
+from numba import njit, jit
 from scipy.optimize import linprog
 
+@njit(cache=True)
 def fc(c):
     """
     The value of f(c), given by Equation 7 in Springel+2015.
@@ -18,8 +19,9 @@ def fc(c):
         The value of fc.
     """
     return c * (0.5 - 0.5 / pow(1 + c, 2) - log(1 + c) / (1 + c)) / pow(log(1 + c) - c / (1 + c), 2)
-    
-def gc(c):
+
+@njit(cache=True)
+def gc(c, tol=1.48e-08, rtol=1.48e-08):
     """
     The value of g(c), used in computing the halo spin factor.
     Parameters
@@ -31,12 +33,24 @@ def gc(c):
     gc : float
         The value of gc.
     """
-    return romberg(_gc_int, 0, c)
+    n = 10
+    clist = c * np.arange(0, n+1)/n
+    int0 = np.trapz(_gc_int(clist), clist)
+    n *= 2
+    clist = c * np.arange(0, n+1)/n
+    int1 = np.trapz(_gc_int(clist), clist)
+    while abs(int1-int0) > tol or abs((int1-int0)/int1) > rtol:
+        int0 = int1
+        n *= 2
+        clist = c * np.arange(0, n+1)/n
+        int1 = np.trapz(_gc_int(clist), clist)
+    return int1
 
+@njit(cache=True)
 def _gc_int(x):
-    return pow(log(1 + x) - x / (1 + x), 0.5) * pow(x, 1.5) / pow(1 + x, 2)
+    return np.power(np.log(1 + x) - x / (1 + x), 0.5) * np.power(x, 1.5) / np.power(1 + x, 2)
 
-@njit
+@njit(cache=True)
 def R2_method(N):
     """
     Returns draws from the R2 method for N particles.
@@ -66,7 +80,7 @@ def R2_method(N):
     
     return x1, x2
 
-@njit
+@njit(cache=True)
 def gen_3D_grid(t):
     """
     Generates a regular 3D grid from a 1D array.
