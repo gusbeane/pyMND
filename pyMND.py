@@ -19,6 +19,8 @@ class pyMND(object):
                  HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
+        self.data = {}
+
         self.u = pyMND_units(HubbleParam)
         self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction,
                                  HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
@@ -46,31 +48,34 @@ class pyMND(object):
         return R * partial_phi
     
     def _draw_pos(self):
-        self.halo_pos = draw_halo_pos(self.p.N_HALO, self.p.RH, self.u)
+        self.data['part1'] = {}
+        self.data['part1']['pos'] = draw_halo_pos(self.p.N_HALO, self.p.RH, self.u)
         if self.p.M_GASHALO > 0.0:
-            self.p.N_GAS, self.gashalo_pos, self.gashalo_mass = draw_gas_halo_pos(self.p.N_GAS, self.p.M_GASHALO, self.p.RH, self.p.R200)
+            self.data['part0'] = {}
+            self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p.N_GAS, self.p.M_GASHALO, self.p.RH, self.p.R200)
 
     def _draw_vel(self):
-        vcsq = self.circular_velocity_squared(self.halo_pos)
-        self.halo_vel = draw_halo_vel(self.halo_pos, vcsq, self.p.N_HALO, self.p.M_HALO, self.p.RH, self.p.halo_spinfactor, self.u)
+        vcsq = self.circular_velocity_squared(self.data['part1']['pos'])
+        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], vcsq, self.p.N_HALO, self.p.M_HALO, self.p.RH, self.p.halo_spinfactor, self.u)
 
         if self.p.M_GASHALO > 0.0:
-            vcsq = self.circular_velocity_squared(self.gashalo_pos)
-            self.gashalo_vel = draw_gas_halo_vel(self.gashalo_pos, vcsq, self.p.halo_spinfactor, self.p.GasHaloSpinFraction)
+            vcsq = self.circular_velocity_squared(self.data['part0']['pos'])
+            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], vcsq, self.p.halo_spinfactor, self.p.GasHaloSpinFraction)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
-            self.gashalo_u = gas_halo_thermal_energy(self.gashalo_pos, self.p.M_GASHALO, self.p.RH, self.u)
+            self.data['part0']['u'] = gas_halo_thermal_energy(self.data['part0']['pos'], self.p.M_GASHALO, self.p.RH, self.u)
     
     def _add_background_grid(self):
         if self.p.AddBackgroundGrid == 0:
             return
         
         # first shift the gas distribution
-        self.gashalo_pos += np.array([self.p.BoxSize/2.0, self.p.BoxSize/2.0, self.p.BoxSize/2.0])
+        for k in self.data.keys():
+            self.data[k]['pos'] += np.array([self.p.BoxSize/2.0, self.p.BoxSize/2.0, self.p.BoxSize/2.0])
 
         # next find the convex hull of the gas distribution
-        hull = ConvexHull(self.gashalo_pos)
+        hull = ConvexHull(self.data['part0']['pos'])
 
         # now iterate and insert background points if they are not in the convex hull
         bg_1d_pos = self.p.BoxSize * (np.arange(0, self.p.AddBackgroundGrid) + 0.5) / self.p.AddBackgroundGrid
@@ -81,17 +86,18 @@ class pyMND(object):
 
         # construct arrays
         Nbgpoints = len(bg_points)
-        self.gashalo_pos = np.concatenate((self.gashalo_pos, bg_points))
-        self.gashalo_vel = np.concatenate((self.gashalo_vel, np.zeros((Nbgpoints, 3))))
-        self.gashalo_u = np.concatenate((self.gashalo_u, np.zeros(Nbgpoints)))
-        self.gashalo_mass = np.concatenate((self.gashalo_mass, np.zeros(Nbgpoints)))
+        self.data['part0']['pos']  = np.concatenate((self.data['part0']['pos'], bg_points))
+        self.data['part0']['vel']  = np.concatenate((self.data['part0']['vel'], np.zeros((Nbgpoints, 3))))
+        self.data['part0']['u']    = np.concatenate((self.data['part0']['u'], np.zeros(Nbgpoints)))
+        self.data['part0']['mass'] = np.concatenate((self.data['part0']['mass'], np.zeros(Nbgpoints)))
         self.p.N_GAS += Nbgpoints
 
         # some sanity checks
-        assert len(self.gashalo_pos) == self.p.N_GAS
-        assert len(self.gashalo_vel) == self.p.N_GAS
-        assert len(self.gashalo_u) == self.p.N_GAS
-        assert len(self.gashalo_mass) == self.p.N_GAS
+        assert len(self.data['part0']['pos'] ) == self.p.N_GAS
+        assert len(self.data['part0']['vel'] ) == self.p.N_GAS
+        assert len(self.data['part0']['u']   ) == self.p.N_GAS
+        assert len(self.data['part0']['mass']) == self.p.N_GAS
+
         return
 
     def _output_ics_file(self):
@@ -104,18 +110,12 @@ class pyMND(object):
         
         ics = arepo.ICs(out_file, npart, masses=masses)
         id0 = 1
-        if self.p.M_GASHALO > 0.0:
-            ics.part0.pos[:] = self.gashalo_pos
-            ics.part0.mass[:] = self.gashalo_mass
-            ics.part0.vel[:] = self.gashalo_vel
-            ics.part0.u[:] = self.gashalo_u
-            ics.part0.id[:] = np.arange(id0, id0 + self.p.N_GAS)
-            id0 += self.p.N_GAS
-
-        ics.part1.pos[:] = self.halo_pos
-        ics.part1.vel[:] = self.halo_vel
-        ics.part1.id[:] = np.arange(id0, id0 + self.p.N_HALO)
-        id0 += self.p.N_HALO
+        for part in self.data.keys():
+            for key in self.data[part].keys():
+                getattr(getattr(ics, part), key)[:] = self.data[part][key]
+            N = len(self.data[part]['pos'])
+            getattr(getattr(ics, part), 'id')[:] = np.arange(id0, id0+N)
+            id0 += N
 
         ics.write()
 
