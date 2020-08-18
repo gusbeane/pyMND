@@ -5,7 +5,9 @@ from scipy.spatial import ConvexHull
 
 from .units import pyMND_units
 from .halo import *
+from .haloset import *
 from .gas_halo import *
+from .gas_haloset import *
 from .util import *
 from .param import gen_pyMND_param
 from .potential import *
@@ -44,11 +46,6 @@ class pyMND(object):
 
         print('R200=', self.p.R200, 'M200=', self.p.M200, 'R200/a=', self.p.R200/self.p.RH)
     
-    def circular_velocity_squared(self, pos):
-        R = np.linalg.norm(pos[:,:2], axis=1)
-        partial_phi = potential_derivative_R(pos, self.p, self.u)
-        return R * partial_phi
-    
     def _draw_pos(self):
         self.data['part1'] = {}
         self.data['part1']['pos'] = draw_halo_pos(self.p, self.u)
@@ -57,12 +54,10 @@ class pyMND(object):
             self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
 
     def _draw_vel(self):
-        vcsq = self.circular_velocity_squared(self.data['part1']['pos'])
-        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], vcsq, self.p, self.u)
+        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
 
         if self.p.M_GASHALO > 0.0:
-            vcsq = self.circular_velocity_squared(self.data['part0']['pos'])
-            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], vcsq, self.p)
+            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
