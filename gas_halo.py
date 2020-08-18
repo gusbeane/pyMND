@@ -1,9 +1,9 @@
 import numpy as np
-from .halo import *
+from .halo import  _halo_potential_derivative_R, _halo_density
 from .util import *
 from numba import njit
 
-def gas_halo_temperature(r, M, a, u):
+def _gas_halo_temperature(r, M, a, u):
     """
     Compute the equilibrium temperature at a given distance.
 
@@ -40,7 +40,7 @@ def gas_halo_temperature(r, M, a, u):
     T *= (mu / kB) * G * M / a
     return T
 
-def gas_halo_thermal_energy(pos, M, a, u):
+def gas_halo_thermal_energy(pos, p, u):
     """
     Compute the equilibrium thermal energy at given positions.
 
@@ -49,10 +49,8 @@ def gas_halo_thermal_energy(pos, M, a, u):
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the halo thermal energy.
-    M : float
-        Total mass of the dark matter halo.
-    a : float
-        Scale length of the dark matter halo.
+    p : `~pyMND.param.pyMND_param`
+        pyMND params class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     Returns
@@ -60,8 +58,10 @@ def gas_halo_thermal_energy(pos, M, a, u):
     energy : `~numpy.ndarray` of shape `(N)`
         Equilibrium thermal energy at the given positions.
     """
+    M, a = p.M_GASHALO, p.RH
+
     r = np.linalg.norm(pos, axis=1)
-    T = gas_halo_temperature(r, M, a, u)
+    T = _gas_halo_temperature(r, M, a, u)
 
     T[T < u.TFLOOR] = u.TFLOOR
 
@@ -70,7 +70,7 @@ def gas_halo_thermal_energy(pos, M, a, u):
     energy *= u.UnitMass_in_g / u.UnitEnergy_in_cgs
     return energy
 
-def gas_halo_potential(pos, M, a, u):
+def _gas_halo_potential(pos, M, a, u):
     """
     The value of the gas halo potential.
     Parameters
@@ -88,9 +88,9 @@ def gas_halo_potential(pos, M, a, u):
     pot : `~numpy.ndarray` of shape `(N)`
         The value of the gas halo potential at pos.
     """
-    return halo_potential(pos, M, a, u)
+    return _halo_potential(pos, M, a, u)
 
-def gas_halo_potential_derivative_R(pos, M, a, u):
+def _gas_halo_potential_derivative_R(pos, M, a, u):
     """
     The value of the partial derivative in R direction of the gas halo potential.
     Parameters
@@ -108,10 +108,10 @@ def gas_halo_potential_derivative_R(pos, M, a, u):
     pot_R : `~numpy.ndarray` of shape `(N)`
         The value of the partial derivative in R direction of the gas halo potential at pos.
     """
-    return halo_potential_derivative_R(pos, M, a, u)
+    return _halo_potential_derivative_R(pos, M, a, u)
 
 @njit
-def gas_halo_density(pos, M, a):
+def _gas_halo_density(pos, M, a):
     """
     The value of the gas halo density.
     Parameters
@@ -127,26 +127,22 @@ def gas_halo_density(pos, M, a):
     rho : `~numpy.ndarray` of shape `(N)`
         The value of the gas halo density at pos.
     """
-    return halo_density(pos, M, a)
+    return _halo_density(pos, M, a)
 
-def draw_gas_halo_pos(N, M, a, Rmax):
+def draw_gas_halo_pos(p):
     """
     Evenly draw positions from a Hernquist profile.
 
     Evenly draws 3D values for a Hernquist profile of a given scale length. Distances are
     evenly drawn and then angles are drawn from a 3D golden spiral to evenly space gas
-    cells.
+    cells. NOTE: The profile is cut off at R200.
     Parameters
     ----------
-    N : `int`
-        Number of positions to draw.
-    a : float
-        Scale length of the dark matter halo.
-    u : `~pyMND.units.pyMND_units`
-        pyMND units class.
+    u : `~pyMND.param.pyMND_param`
+        pyMND param class.
     Returns
     -------
-    M : `int`
+    N : `int`
         The actual number of gas cells drawn.
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Evenly drawn positions from a Hernquist profile.
@@ -154,6 +150,11 @@ def draw_gas_halo_pos(N, M, a, Rmax):
         The masses of each cell.
     """
     # We have a target gas cell mass, in units of M:
+    N = p.N_GAS
+    M = p.M_GASHALO
+    a = p.RH
+    Rmax = p.R200
+
     mg = M/N
 
     u, v = R2_method(N)
@@ -175,7 +176,7 @@ def draw_gas_halo_pos(N, M, a, Rmax):
     
     return M, pos, mass
 
-def draw_gas_halo_vel(pos, vcsq, halo_spinfactor, GasHaloSpinFraction):
+def draw_gas_halo_vel(pos, vcsq, p):
     """
     Assign gas halo velocities.
 
@@ -196,6 +197,8 @@ def draw_gas_halo_vel(pos, vcsq, halo_spinfactor, GasHaloSpinFraction):
     vel : `~numpy.ndarray` of shape `(N, 3)`
         Velocities drawn from a Hernquist profile.
     """
+    halo_spinfactor, GasHaloSpinFraction = p.halo_spinfactor, p.GasHaloSpinFraction
+
     vphi = halo_spinfactor * GasHaloSpinFraction * np.sqrt(vcsq)
 
     R = np.linalg.norm(pos[:, :2], axis=1)

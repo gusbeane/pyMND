@@ -2,14 +2,14 @@ import numpy as np
 from numba import njit
 
 @njit
-def halo_density(pos, M, a):
+def _halo_density(pos, M, a):
     """
     The value of the halo density.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the density.
-    M : float
+    M : `float`
         Total mass of the dark matter halo.
     a : float
         Scale length of the dark matter halo.
@@ -22,14 +22,14 @@ def halo_density(pos, M, a):
     rho = (M/(2.*np.pi)) * (a/r) * (r+a)**(-3.)
     return rho
 
-def halo_potential(pos, M, a, u):
+def _halo_potential(pos, M, a, u):
     """
     The value of the halo potential.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the potential.
-    M : float
+    M : `float`
         Total mass of the dark matter halo.
     a : float
         Scale length of the dark matter halo.
@@ -45,14 +45,14 @@ def halo_potential(pos, M, a, u):
     pot /= r + a
     return pot
 
-def halo_potential_derivative_R(pos, M, a, u):
+def _halo_potential_derivative_R(pos, M, a, u):
     """
     The value of the partial derivative in R direction of the halo potential.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the potential derivative.
-    M : float
+    M : `float`
         Total mass of the dark matter halo.
     a : float
         Scale length of the dark matter halo.
@@ -71,14 +71,14 @@ def halo_potential_derivative_R(pos, M, a, u):
 
     return pot_R
 
-def halo_potential_derivative_z(pos, M, a, u):
+def _halo_potential_derivative_z(pos, M, a, u):
     """
     The value of the partial derivative in z direction of the halo potential.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the potential derivative.
-    M : float
+    M : `float`
         Total mass of the dark matter halo.
     a : float
         Scale length of the dark matter halo.
@@ -97,7 +97,7 @@ def halo_potential_derivative_z(pos, M, a, u):
 
     return pot_z
 
-def halo_draw_r(N, a):
+def _halo_draw_r(N, p):
     """
     Randomly draw distances from a Hernquist profile.
 
@@ -114,13 +114,15 @@ def halo_draw_r(N, a):
     r : `~numpy.ndarray` of shape `(N)`
         Randomly drawn distances from a Hernquist profile.
     """
+    a = p.RH
+
     f = np.random.rand(N)
     sqrtf = np.sqrt(f)
     rt = np.divide(sqrtf, np.subtract(1., sqrtf))
     
     return np.multiply(rt, a)
 
-def draw_halo_pos(N, a, u):
+def draw_halo_pos(p, u):
     """
     Randomly draw positions from a Hernquist profile.
 
@@ -129,10 +131,8 @@ def draw_halo_pos(N, a, u):
     orientations.
     Parameters
     ----------
-    N : `int`
-        Number of distances to draw.
-    a : float
-        Scale length of the dark matter halo.
+    p : `~pyMND.param.pyMND_param`
+        pyMND params class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     Returns
@@ -140,7 +140,10 @@ def draw_halo_pos(N, a, u):
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Randomly drawn positions from a Hernquist profile.
     """
-    r = halo_draw_r(N, a)
+    N = p.N_HALO
+    a = p.RH
+
+    r = _halo_draw_r(N, p)
     phi = np.multiply(2.*u.PI, np.random.rand(N))
     theta = np.arccos(np.random.rand(N) * 2. - 1.)
 
@@ -153,17 +156,15 @@ def draw_halo_pos(N, a, u):
     pos = np.transpose([xp_halo, yp_halo, zp_halo])
     return pos
 
-def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor):
+def compute_velocity_ellipsoid_halo(pos, p, u, vcirc_squared):
     """
     Compute the velocity ellipsoid for the halo component from input positions.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Number of distances to draw.
-    M : float
-        Total mass of the dark matter halo.
-    a : float
-        Scale length of the dark matter halo.
+    p : `~pyMND.param.pyMND_param`
+        pyMND param class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     vcirc_squared : `~numpy.ndarray` of shape `(N)`
@@ -185,6 +186,10 @@ def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor
     sigma_phi : `~numpy.ndarray` of shape `(N)`
         Velocity standard deviation in the phi direction.
     """
+    M = p.M_HALO + p.M_GASHALO
+    a = p.RH 
+    halo_spinfactor = p.halo_spinfactor
+
     prefactor = u.G * M / a
     r = np.linalg.norm(pos, axis=1)
 
@@ -229,7 +234,7 @@ def compute_velocity_ellipsoid_halo(pos, M, a, u, vcirc_squared, halo_spinfactor
 
     return ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi
 
-def draw_halo_vel(pos, vcsq, N, M, a, lam, u):
+def draw_halo_vel(pos, vcsq, p, u):
     """
     Randomly draw velocities from a Hernquist profile.
 
@@ -239,10 +244,12 @@ def draw_halo_vel(pos, vcsq, N, M, a, lam, u):
     orientations.
     Parameters
     ----------
-    pos : `int`
-        Number of distances to draw.
-    a : float
-        Scale length of the dark matter halo.
+    pos : `~numpy.ndarray` of shape `(N, 3)`
+        Positions at which to draw velocities.
+    vcsq : `~numpy.ndarray` of shape `(N)`
+        Circular velocity squared at the relevant positions.
+    p : `~pyMND.param.pyMND_param`
+        pyMND params class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     Returns
@@ -250,8 +257,13 @@ def draw_halo_vel(pos, vcsq, N, M, a, lam, u):
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Randomly drawn positions from a Hernquist profile.
     """
+    N = p.N_HALO
+    M = p.M_HALO + p.M_GASHALO
+    a = p.RH
+    lam = p.halo_spinfactor
+
     ave_R, ave_z, ave_phi, sigma_R, sigma_z, sigma_phi = \
-            compute_velocity_ellipsoid_halo(pos, M, a, u, vcsq, lam)
+            compute_velocity_ellipsoid_halo(pos, p, u, vcsq)
 
     vR = np.random.normal(size=N)
     vz = np.random.normal(size=N)

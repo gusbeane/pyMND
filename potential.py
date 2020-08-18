@@ -1,20 +1,16 @@
 import numpy as np
-from .halo import halo_potential, halo_potential_derivative_R
-from .gas_halo import gas_halo_potential, gas_halo_potential_derivative_R
+from .halo import _halo_potential, _halo_potential_derivative_R
+from .gas_halo import _gas_halo_potential, _gas_halo_potential_derivative_R
 
-def potential(pos, M, a, MG, u):
+def potential(pos, p, u):
     """
     The value of the potential from all components.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the potential.
-    M : float
-        Total mass of the dark matter halo.
-    a : float
-        Scale length of the dark matter halo.
-    MG : float
-        Total mass of the gaseous hot halo.
+    p : `~pyMND.param.pyMND_param`
+        pyMND param class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     Returns
@@ -22,23 +18,19 @@ def potential(pos, M, a, MG, u):
     pot : `~numpy.ndarray` of shape `(N)`
         The value of the potential at pos.
     """
-    pot = halo_potential(pos, M, a, u)
-    pot += gas_halo_potential(pos, MG, a, u)
+    pot = _halo_potential(pos, p.M_HALO, p.RH, u)
+    pot += _gas_halo_potential(pos, p.M_GASHALO, p.RH, u)
     return pot
     
-def potential_derivative_R(pos, M, a, MG, u):
+def potential_derivative_R(pos, p, u):
     """
     The value of the partial derivative of the potential in R direction from all components.
     Parameters
     ----------
     pos : `~numpy.ndarray` of shape `(N, 3)`
         Positions at which to compute the value of the potential.
-    M : float
-        Total mass of the dark matter halo.
-    a : float
-        Scale length of the dark matter halo.
-    MG : float
-        Total mass of the gaseous hot halo.
+    p : `~pyMND.param.pyMND_param`
+        pyMND param class.
     u : `~pyMND.units.pyMND_units`
         pyMND units class.
     Returns
@@ -46,6 +38,6 @@ def potential_derivative_R(pos, M, a, MG, u):
     pot_R : `~numpy.ndarray` of shape `(N)`
         The value of the partial derivative of the potential in the R direction at pos.
     """
-    pot_R = halo_potential_derivative_R(pos, M, a, u)
-    pot_R += gas_halo_potential_derivative_R(pos, MG, a, u)
+    pot_R = _halo_potential_derivative_R(pos, p.M_HALO, p.RH, u)
+    pot_R += _gas_halo_potential_derivative_R(pos, p.M_GASHALO, p.RH, u)
     return pot_R

@@ -19,6 +19,8 @@ class pyMND(object):
                  HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
+        np.random.seed(160)
+
         self.data = {}
 
         self.u = pyMND_units(HubbleParam)
@@ -44,27 +46,27 @@ class pyMND(object):
     
     def circular_velocity_squared(self, pos):
         R = np.linalg.norm(pos[:,:2], axis=1)
-        partial_phi = potential_derivative_R(pos, self.p.M_HALO, self.p.RH, self.p.M_GASHALO, self.u)
+        partial_phi = potential_derivative_R(pos, self.p, self.u)
         return R * partial_phi
     
     def _draw_pos(self):
         self.data['part1'] = {}
-        self.data['part1']['pos'] = draw_halo_pos(self.p.N_HALO, self.p.RH, self.u)
+        self.data['part1']['pos'] = draw_halo_pos(self.p, self.u)
         if self.p.M_GASHALO > 0.0:
             self.data['part0'] = {}
-            self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p.N_GAS, self.p.M_GASHALO, self.p.RH, self.p.R200)
+            self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
 
     def _draw_vel(self):
         vcsq = self.circular_velocity_squared(self.data['part1']['pos'])
-        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], vcsq, self.p.N_HALO, self.p.M_HALO, self.p.RH, self.p.halo_spinfactor, self.u)
+        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], vcsq, self.p, self.u)
 
         if self.p.M_GASHALO > 0.0:
             vcsq = self.circular_velocity_squared(self.data['part0']['pos'])
-            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], vcsq, self.p.halo_spinfactor, self.p.GasHaloSpinFraction)
+            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], vcsq, self.p)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
-            self.data['part0']['u'] = gas_halo_thermal_energy(self.data['part0']['pos'], self.p.M_GASHALO, self.p.RH, self.u)
+            self.data['part0']['u'] = gas_halo_thermal_energy(self.data['part0']['pos'], self.p, self.u)
     
     def _add_background_grid(self):
         if self.p.AddBackgroundGrid == 0:
