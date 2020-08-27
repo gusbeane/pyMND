@@ -1,15 +1,38 @@
 import numpy as np
 from math import sqrt
 
+from numba import njit, types, int32, int64, float64, typed, typeof
+from numba.experimental import jitclass
+
+spec = [('suns', int64[:]),
+        ('center', float64[:]),
+        ('length', float64),
+        ('com', float64[:]),
+        ('mass', float64)]
+
+@jitclass(spec)
 class Node(object):
     def __init__(self, center, length):
-        self.suns = [-1, -1, -1, -1, -1, -1, -1, -1]
+        self.suns = np.array([-1, -1, -1, -1, -1, -1, -1, -1])
         self.center = center
         self.length = length
 
-        self.com = np.array([0, 0, 0])
+        self.com = np.array([0., 0., 0.])
         self.mass = 0.0
 
+l = typed.List()
+l.append(Node(np.array([0.0, 0.0, 0.0]), 1.))
+
+spec = [('center', float64[:]),
+        ('length', float64),
+        ('points', float64[:,:]),
+        ('Npart', int64),
+        ('nodes', typeof(l)),
+        ('Nnodes', int64),
+        ('soft', float64),
+        ('h', float64)]
+
+@jitclass(spec)
 class Tree(object):
     def __init__(self, center, length, points, soft):
         self.center = center
@@ -18,7 +41,9 @@ class Tree(object):
         
         self.Npart = len(points)
 
-        self.nodes = [Node(self.center, self.length)]
+        l = typed.List()
+        l.append(Node(self.center, self.length))
+        self.nodes = l
         self.Nnodes = 0
 
         self.soft = soft
@@ -35,14 +60,14 @@ class Tree(object):
 
         while True:
             oct_idx, new_cen, new_len = self._determine_oct_idx(p, node.center, node.length)
-            
+
+            # Update center of mass and mass of node            
             node.com = (node.mass * node.com + p) / (node.mass + 1.0)
             node.mass += 1.0
             
             if node.suns[oct_idx] == -1:
                 # Sun is empty, we can add the point.
                 node.suns[oct_idx] = p_idx
-                print('nice', p_idx)
                 break
             elif node.suns[oct_idx] >= self.Npart:
                 # Sun points to another node, repeat procedure.
@@ -50,6 +75,9 @@ class Tree(object):
                 continue
             elif node.suns[oct_idx] < self.Npart and node.suns[oct_idx] >= 0:
                 # Sun points to a single particle, need to replace with a new node.
+                # The new node will contain the old particle, and then the procedure must be restarted.
+                # We can't just insert the new particle too, since the two particles may occupy the same
+                # octant, in which case another new node must be created.
                 new_node = Node(new_cen, new_len)
 
                 self.nodes.append(new_node)
@@ -62,13 +90,14 @@ class Tree(object):
                 new_node.com = old_p
 
                 node.suns[oct_idx] = self.Npart + self.Nnodes
-                new_oct_idx, _, _ = self._determine_oct_idx(old_p, new_node.center, new_node.length)
+
+                new_oct_idx, _, _ = _determine_oct_idx(old_p, new_node.center, new_node.length)
                 new_node.suns[new_oct_idx] = old_pidx
                 node = new_node
                 continue
             else:
                 raise ValueError
-
+        
     def _determine_oct_idx(self, pos, cen, length):
         oct_idx = 0
         half_length = length/2.0
@@ -85,10 +114,10 @@ class Tree(object):
         
         return oct_idx, new_cen, half_length
     
-    def force_evaluate(self, pos, theta=1.0):
-        return self._eval(self.nodes[0], pos, self.h, theta, self._force_kernel)
+    def force_evaluate(self, pos, theta):
+        return self._force_eval(self.nodes[0], pos, self.h, theta)
 
-    def _eval(self, node, p, h, theta, kernel):
+    def _force_eval(self, node, p, h, theta):
         force = np.array([0.0, 0.0, 0.0])
 
         if node.mass == 0.0:
@@ -103,7 +132,7 @@ class Tree(object):
 
         #If we satisfy the opening angle criterion, we end here
         if r > node.length/theta and u > 1.0:
-            force += node.mass * kernel(r, h, dx, dy, dz)
+            force += node.mass * self._force_kernel(r, h, dx, dy, dz)
         else:
             # Otherwise, we open the node. We check for leaves and evaluate, otherwise we restart force calc.
             for i in range(8):
@@ -116,10 +145,10 @@ class Tree(object):
                     dy = leaf_p[1] - p[1]
                     dz = leaf_p[2] - p[2]
                     r = sqrt(dx*dx + dy*dy + dz*dz)
-                    force += 1.0 * kernel(r, h, dx, dy, dz)
+                    force += 1.0 * self._force_kernel(r, h, dx, dy, dz)
                 else:
                     new_node = self.nodes[node.suns[i] - self.Npart]
-                    force += self._eval(new_node, p, h, theta, kernel)
+                    force += self._force_eval(new_node, p, h, theta)
         
         return force
 
