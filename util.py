@@ -81,6 +81,41 @@ def R2_method(N):
     return x1, x2
 
 @njit(cache=True)
+def R3_method(N):
+    """
+    Returns draws from the R3 method for N particles.
+    Parameters
+    ----------
+    N : int
+        Number of draws to make.
+    Returns
+    -------
+    x1 : `~numpy.ndarray` of shape `(N)`
+        Draws along the first dimension.
+    x2 : `~numpy.ndarray` of shape `(N)'
+        Draws along the second dimension.
+    x3 : `~numpy.ndarray` of shape `(N)'
+        Draws along the second dimension.
+    """
+    g = 1.22074408460575947536
+    a1 = 1.0/g
+    a2 = 1.0/(g*g)
+    a3 = 1.0/(g*g*g)
+
+    x1 = np.zeros(N)
+    x2 = np.zeros(N)
+    x3 = np.zeros(N)
+
+    x1[0], x2[0], x3[0] = 0.5, 0.5, 0.5
+
+    for i in range(1, N):
+        x1[i] = np.mod(x1[i-1] + a1, 1.0)
+        x2[i] = np.mod(x2[i-1] + a2, 1.0)
+        x3[i] = np.mod(x3[i-1] + a3, 1.0)
+    
+    return x1, x2, x3
+
+@njit(cache=True)
 def gen_3D_grid(t):
     """
     Generates a regular 3D grid from a 1D array.
