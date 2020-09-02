@@ -1,6 +1,8 @@
 import numpy as np
 from math import sqrt
 
+import time
+
 from numba import njit, types, int32, int64, float64, typed, typeof
 from numba.experimental import jitclass
 
@@ -23,7 +25,10 @@ class Node(object):
 l = typed.List()
 l.append(Node(np.array([0.0, 0.0, 0.0]), 1.))
 
-spec = [('center', float64[:]),
+spec = [('xmin', float64), ('xmax', float64),
+        ('ymin', float64), ('ymax', float64),
+        ('zmin', float64), ('zmax', float64),
+        ('center', float64[:]),
         ('length', float64),
         ('points', float64[:,:]),
         ('Npart', int64),
@@ -34,9 +39,14 @@ spec = [('center', float64[:]),
 
 @jitclass(spec)
 class Tree(object):
-    def __init__(self, center, length, points, soft):
-        self.center = center
-        self.length = length
+    def __init__(self, points, soft):
+        self.xmin, self.xmax = points[:,0].min(), points[:,0].max()
+        self.ymin, self.ymax = points[:,1].min(), points[:,1].max()
+        self.zmin, self.zmax = points[:,2].min(), points[:,2].max()
+
+        self.length = max(self.xmax-self.xmin, self.ymax-self.ymin, self.zmax-self.zmin)
+        self.center = np.array([self.xmin+self.xmax, self.ymin+self.ymax, self.zmin+self.zmax])/2.0
+        
         self.points = points
         
         self.Npart = len(points)
@@ -91,7 +101,7 @@ class Tree(object):
 
                 node.suns[oct_idx] = self.Npart + self.Nnodes
 
-                new_oct_idx, _, _ = _determine_oct_idx(old_p, new_node.center, new_node.length)
+                new_oct_idx, _, _ = self._determine_oct_idx(old_p, new_node.center, new_node.length)
                 new_node.suns[new_oct_idx] = old_pidx
                 node = new_node
                 continue
@@ -166,18 +176,33 @@ class Tree(object):
         return np.array([fac * dx, fac * dy, fac * dz])
 
 
+
 if __name__ == '__main__':
+    from util import R3_method
+    
     np.random.seed(10)
 
-    N = 1000
+    N = 2 * 2048 * 32 * 64
+    # N = int(1E5)
     soft = 0.3/2.8
     h = 2.8 * soft
-    points = np.random.rand(N, 3)
-    t = Tree(np.array([0.5, 0.5, 0.5]), 1.0, points, soft)
-    
+
+    # points = np.random.rand(N, 3)
+    # x, y, z = R3_method(N)
+    # points = np.transpose([x, y, z])
+    points = np.load('dummy_pos.npy')
+
+    t0 = time.time()
+    t = Tree(points, soft)
+    t1 = time.time()
+    print('tree construction took: ', t1-t0)
+
+    import sys
+    sys.exit(0)
+
     eval_pos = np.array([0.5, 0.5, 0.5])
 
-    tree_force = t.force_evaluate(eval_pos)
+    tree_force = t.force_evaluate(eval_pos, 0.7)
 
     force = np.zeros(3)
     # do direct evaluation
