@@ -2,6 +2,7 @@
 *.hdf5
 __pycache__/
 .ipynb_checkpoints
+*egg-info
 
 MW_ICs.hdf5
 timing.dat
