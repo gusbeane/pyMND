@@ -4,6 +4,10 @@ __pycache__/
 .ipynb_checkpoints
 *egg-info
 
+build/
+dist/
+*.so
+
 MW_ICs.hdf5
 timing.dat
 timing-lvl4.dat
