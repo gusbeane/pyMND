@@ -17,6 +17,8 @@ VERS = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VERS, init_string, re.M)
 __version__ = mo.group(1)
 
+ext = cythonize([Extension("pyMND/forcetree", ["pyMND/forcetree.pyx"], include_dirs=[numpy.get_include()])])
+
 setup(
     name="pyMND",
     url="https://github.com/gusbeane/pyMND",
@@ -34,6 +36,6 @@ setup(
                  "Operating System :: OS Independent",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Intended Audience :: Science/Research"],
-    # ext_modules=cythonize([Extension("forcetree", ["src/forcetree.pyx"], include_dirs=[numpy.get_include()])])
+    ext_modules=ext
 )
 
