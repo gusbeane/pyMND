@@ -2,6 +2,8 @@ import numpy as np
 cimport numpy as np
 import sys
 
+from math import sqrt
+
 from libc.stdlib cimport malloc, free
 import cython
 
@@ -31,8 +33,9 @@ cdef class TREE(object):
     cdef double[:,:] Pos
     cdef double[:] Mass
     cdef int last
+    cdef double Theta, Softening
 
-    def __init__(self, MaxNodes, MaxPart, Pos, Mass):
+    def __init__(self, MaxNodes, MaxPart, Pos, Mass, Theta, Softening):
         self.MaxNodes = MaxNodes
         self.MaxPart = MaxPart
 
@@ -41,6 +44,9 @@ cdef class TREE(object):
         self.Pos = Pos
         self.Mass = Mass
         self.NumPart = len(Pos)
+
+        self.Theta = Theta
+        self.Softening = Softening
 
         self.last = 0
     
@@ -283,131 +289,98 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
                 tree.Nextnode[tree.last] = no
         tree.last = no
 
-# cdef force_treeevaluate(double[:] pos, double softening, double[:] acc):
-#     struct NODE    *nop = 0
-#     int no, ninteractions;
-#     double r2, dx, dy, dz, mass, r, fac, u, h, h_inv, h3_inv
-#     double acc_x, acc_y, acc_z, pos_x, pos_y, pos_z
+cpdef force_treeevaluate(double[:] pos, TREE tree):
+    cdef NODE *nop
+    cdef int no, ninteractions
+    cdef double r2, dx, dy, dz, mass, r, fac, u, h, h_inv, h3_inv
+    cdef double acc_x, acc_y, acc_z, pos_x, pos_y, pos_z
+    cdef double [3] acc
 
-#     acc_x = 0
-#     acc_y = 0
-#     acc_z = 0
-#     ninteractions = 0
+    acc_x = 0
+    acc_y = 0
+    acc_z = 0
+    ninteractions = 0
 
-#     pos_x = pos[0]
-#     pos_y = pos[1]
-#     pos_z = pos[2]
+    pos_x = pos[0]
+    pos_y = pos[1]
+    pos_z = pos[2]
 
-#     h = 2.8 * softening
-#     h_inv = 1.0 / h
-#     h3_inv = h_inv * h_inv * h_inv
+    h = 2.8 * tree.Softening
+    h_inv = 1.0 / h
+    h3_inv = h_inv * h_inv * h_inv
 
-#     no = MaxPart		#/* first node */
+    no = tree.MaxPart		#/* first node */
 
-#     while (no >= 0) {
-#         if (no < MaxPart) {
-#             # /* the index of the node is the index of the particle */
-#             dx = P[no].Pos[0] - pos_x
-#             dy = P[no].Pos[1] - pos_y
-#             dz = P[no].Pos[2] - pos_z
+    while no >= 0:
+        if no < tree.MaxPart:
+            # /* the index of the node is the index of the particle */
+            dx = tree.Pos[no][0] - pos_x
+            dy = tree.Pos[no][1] - pos_y
+            dz = tree.Pos[no][2] - pos_z
 
-#             r2 = dx * dx + dy * dy + dz * dz;
+            r2 = dx * dx + dy * dy + dz * dz
 
-#             mass = P[no].Mass;
+            mass = tree.Mass[no]
 
-#             no = Nextnode[no];
-#         } else {	/* we have an  internal node */
-#             nop = &Nodes[no];
+            no = tree.Nextnode[no]
+        else:	#/* we have an  internal node */
+            nop = &tree.Nodes[no]
 
-#             dx = nop->u.d.s[0] - pos_x;
-#             dy = nop->u.d.s[1] - pos_y;
-#             dz = nop->u.d.s[2] - pos_z;
+            dx = nop.u.d.s[0] - pos_x
+            dy = nop.u.d.s[1] - pos_y
+            dz = nop.u.d.s[2] - pos_z
 
-#             r2 = dx * dx + dy * dy + dz * dz;
+            r2 = dx * dx + dy * dy + dz * dz
 
-#             mass = nop->u.d.mass;
+            mass = nop.u.d.mass
 
-#             /*
-#              * printf("nop->len=%g  r=%g  %g %g\n", nop->len,
-#              * sqrt(r2), nop->len * nop->len , r2 * ErrTolTheta *
-#              * ErrTolTheta);
-#              */
+            if (nop.length * nop.length > r2 * tree.Theta * tree.Theta):
+                # /* open cell */
+                no = nop.u.d.nextnode
+                continue
+            # /* check in addition whether we lie inside the cell */
 
-#             if (nop->len * nop->len > r2 * ErrTolTheta * ErrTolTheta) {
-#                 /* open cell */
-#                 no = nop->u.d.nextnode;
-#                 continue;
-#             }
-#             /* check in addition whether we lie inside the cell */
+            if (abs(nop.center[0] - pos_x) < 0.60 * nop.length):
+                if (abs(nop.center[1] - pos_y) < 0.60 * nop.length):
+                    if (abs(nop.center[2] - pos_z) < 0.60 * nop.length):
+                        no = nop.u.d.nextnode
+                        continue
 
-#             if (fabs(nop->center[0] - pos_x) < 0.60 * nop->len) {
-#                 if (fabs(nop->center[1] - pos_y) < 0.60 * nop->len) {
-#                     if (fabs(nop->center[2] - pos_z) < 0.60 * nop->len) {
-#                         no = nop->u.d.nextnode;
-#                         continue;
-#                     }
-#                 }
-#             }
-#             no = nop->u.d.sibling;	/* ok, node can be used */
-#         }
+            no = nop.u.d.sibling #	/* ok, node can be used */
 
-#         r = sqrt(r2);
+        r = sqrt(r2)
 
-#         if (r >= h)
-#             fac = mass / (r2 * r);
-#         else {
-#             u = r * h_inv;
-#             if (u < 0.5)
-#                 fac = mass * h3_inv * (10.666666666667 + u * u * (32.0 * u - 38.4));
-#             else
-#                 fac =
-#                     mass * h3_inv * (21.333333333333 - 48.0 * u +
-#                              38.4 * u * u - 10.666666666667 * u * u * u - 0.066666666667 / (u * u * u));
-#         }
+        if (r >= h):
+            fac = mass / (r2 * r)
+        else:
+            u = r * h_inv
+            if (u < 0.5):
+                fac = mass * h3_inv * (10.666666666667 + u * u * (32.0 * u - 38.4))
+            else:
+                fac = mass * h3_inv * (21.333333333333 - 48.0 * u +
+                             38.4 * u * u - 10.666666666667 * u * u * u - 0.066666666667 / (u * u * u))
 
-#         acc_x += dx * fac;
-#         acc_y += dy * fac;
-#         acc_z += dz * fac;
+        acc_x += dx * fac
+        acc_y += dy * fac
+        acc_z += dz * fac
 
-#         ninteractions++;
-#     }
+        ninteractions += 1
+        print(ninteractions)
 
-#     /* store result at the proper place */
+    # /* store result at the proper place */
 
-#     acc[0] = acc_x;
-#     acc[1] = acc_y;
-#     acc[2] = acc_z;
+    acc[0] = acc_x
+    acc[1] = acc_y
+    acc[2] = acc_z
 
-#     return ninteractions;
+    return acc
 
-# cdef force_treeallocate(int maxnodes, int maxpart):
-#     global MaxNodes, MaxPart, Nextnode, Nodes_base
-#     cdef int allbytes = 0
-    
-#     MaxNodes = maxnodes
-#     MaxPart = maxpart
-
-#     Nodes_base = <NODE *> malloc((MaxNodes + 1) * sizeof(NODE))
-#     allbytes += (MaxNodes + 1) * sizeof(NODE)
-
-#     Nextnode = <int *> malloc(MaxPart * sizeof(int))
-#     allbytes += MaxPart * sizeof(int)
-
-#     print("Use {} MByte for BH-tree.".format(allbytes / (1024.0 * 1024.0)))
-
-# cdef force_treefree():
-#     global Nextnode, Nodes_base
-#     free(Nextnode)
-#     free(Nodes_base)
-
-
-def construct_tree(pos, mass):
-    global NumPart
+cpdef construct_tree(pos, mass, theta, softening):
     maxpart = pos.shape[0]
     NumPart = maxpart
     maxnodes = int(1.5 * maxpart)
     
-    tree = TREE(maxnodes, maxpart, pos, mass)
+    tree = TREE(maxnodes, maxpart, pos, mass, theta, softening)
 
     tree = force_treebuild(tree)
     return tree
