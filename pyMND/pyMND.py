@@ -11,13 +11,14 @@ from .gas_haloset import *
 from .util import *
 from .param import gen_pyMND_param
 from .potential import *
+from .diskset import *
 
 from tqdm import tqdm
 import time
 
 class pyMND(object):
-    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, 
-                 MGH, GasHaloSpinFraction,
+    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK,
+                 MD, JD, MGH, DiskHeight, GasHaloSpinFraction,
                  HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
@@ -26,7 +27,7 @@ class pyMND(object):
         self.data = {}
 
         self.u = pyMND_units(HubbleParam)
-        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction,
+        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction,
                                  HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
 
         # draw positions
@@ -52,6 +53,10 @@ class pyMND(object):
         if self.p.M_GASHALO > 0.0:
             self.data['part0'] = {}
             self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
+        if self.p.M_DISK > 0.0:
+            self.data['part2'] = {}
+            pos = draw_disk_pos(self.p, self.u)
+            self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
@@ -98,7 +103,7 @@ class pyMND(object):
         return
 
     def _output_ics_file(self):
-        npart = [self.p.N_GAS, self.p.N_HALO, 0, 0, 0, 0]
+        npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, 0, 0, 0]
         masses = [0, self.p.M_HALO/self.p.N_HALO, 0, 0, 0, 0]
 
         out_file = self.p.OutputDir + '/' + self.p.OutputFile
