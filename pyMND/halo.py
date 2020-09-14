@@ -96,3 +96,26 @@ def _halo_potential_derivative_z(pos, M, a, u):
     pot_z *= z/r
 
     return pot_z
+
+@njit
+def _halo_mass_enclosed(r, M, a, u):
+    """
+    The mass enclosed within a certain radius of a Hernquist halo.
+    Parameters
+    ----------
+    r : `~numpy.ndarray` of shape `(N)` or `float`
+        Radii at which to compute the enclosed mass.
+    M : `float`
+        Total mass of the dark matter halo.
+    a : float
+        Scale length of the dark matter halo.
+    u : `~pyMND.units.pyMND_units`
+        pyMND units class.
+    Returns
+    -------
+    Menc : `~numpy.ndarray` of shape `(N)` or `float`
+        The enclosed mass at each radii.
+    """
+    x = r / a
+    Menc = M * (x/(1.+x))**2.
+    return Menc
