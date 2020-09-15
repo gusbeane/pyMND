@@ -59,6 +59,7 @@ class pyMND(object):
             self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
             self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
+            self.disk_dummy_mass = self.M_DISK / (self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
@@ -106,7 +107,7 @@ class pyMND(object):
 
     def _output_ics_file(self):
         npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, 0, 0, 0]
-        masses = [0, self.p.M_HALO/self.p.N_HALO, 0, 0, 0, 0]
+        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_DISK/self.p.N_DISK, 0, 0, 0]
 
         out_file = self.p.OutputDir + '/' + self.p.OutputFile
         if out_file[5:] != '.hdf5' and out_file[3:] != '.h5':
