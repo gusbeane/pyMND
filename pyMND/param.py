@@ -104,7 +104,7 @@ class pyMND_param(object):
         print(self.H)
         print('M_HALO=', self.M_HALO, 'LAMBDA=', self.LAMBDA, 'M_DISK=', self.M_DISK)
     
-    def _auxilliary():
+    def _auxilliary(self):
         self.RMASSBINS = 2048
         self.ZMASSBINS = 32
         self.PHIMASSBINS = 64
