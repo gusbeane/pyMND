@@ -56,4 +56,28 @@ def draw_disk_pos(p, u):
 
     return pos
 
+@njit
+def draw_dummy_disk_pos(p, u):
+    N = p.RMASSBINS * p.ZMASSBINS * p.PHIMASSBINS
+    pos = np.zeros((N, 3))
+
+    it = 0
+    for i in range(p.RMASSBINS):
+        q = (i + 0.5) / p.RMASSBINS
+        R = draw_R_star(q) * p.H
+
+        for j in range(p.ZMASSBINS):
+            q = (j + 0.5) / p.ZMASSBINS
+            z = (p.Z0 / 2) * log(q / (1. - q))
+
+            for k in range(p.PHIMASSBINS):
+                phi = 2. * u.PI * (k + 0.5) / p.PHIMASSBINS
+
+                pos[it][0] = R * cos(phi)
+                pos[it][1] = R * sin(phi)
+                pos[it][2] = z
+                it += 1
+    
+    return pos
+
     

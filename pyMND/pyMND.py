@@ -58,6 +58,8 @@ class pyMND(object):
             pos = draw_disk_pos(self.p, self.u)
             self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
+            self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
+
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
 

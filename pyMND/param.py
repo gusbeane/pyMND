@@ -41,7 +41,11 @@ spec_param = [('CC', float64),
               ('H', float64),
               ('Z0', float64),
               ('A', float64),
-              ('halo_spinfactor', float64)]
+              ('halo_spinfactor', float64),
+              # Auxiliary paramters.
+              ('RMASSBINS', int64),
+              ('ZMASSBINS', int64),
+              ('PHIMASSBINS', int64)]
 
 @jitclass(spec_param)
 class pyMND_param(object):
@@ -70,6 +74,9 @@ class pyMND_param(object):
         # Derive structural parameters.
         self._structure()
 
+        # Set some auxilliary parameters.
+        self._auxilliary()
+
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
         self.R200 = self.V200 / (10 * self.u.H0)
@@ -96,6 +103,11 @@ class pyMND_param(object):
             self._determine_disk_scalelength()
         print(self.H)
         print('M_HALO=', self.M_HALO, 'LAMBDA=', self.LAMBDA, 'M_DISK=', self.M_DISK)
+    
+    def _auxilliary():
+        self.RMASSBINS = 2048
+        self.ZMASSBINS = 32
+        self.PHIMASSBINS = 64
     
     def _determine_disk_scalelength(self):
         self.H = sqrt(2.0) / 2.0 * self.LAMBDA / fc(self.CC) * self.R200 #/* first guess for disk scale length */
