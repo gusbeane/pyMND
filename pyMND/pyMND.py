@@ -12,6 +12,9 @@ from .util import *
 from .param import gen_pyMND_param
 from .potential import *
 from .diskset import *
+from .force import _generate_force_grid
+from .force_wrapper import _compute_forces_on_grid
+from .forcetree import construct_tree, construct_empty_tree
 
 from tqdm import tqdm
 import time
@@ -32,6 +35,9 @@ class pyMND(object):
 
         # draw positions
         self._draw_pos()
+
+        # compute force fields on a grid
+        self._compute_force_fields()
 
         # draw velocities
         self._draw_vel()
@@ -55,11 +61,24 @@ class pyMND(object):
             self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
         if self.p.M_DISK > 0.0:
             self.data['part2'] = {}
-            pos = draw_disk_pos(self.p, self.u)
             self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
+
             self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
-            self.disk_dummy_mass = self.M_DISK / (self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS)
+            Ndummy = self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS
+            self.disk_dummy_mass = np.full(Ndummy, self.p.M_DISK/Ndummy)
+    
+    def _compute_force_fields(self):
+        # Setup the tree for the disk.
+        if self.p.M_DISK > 0.0:
+            self.disk_tree = construct_tree(self.disk_dummy_pos, self.disk_dummy_mass, self.p.Theta, 0.01 * self.p.H)
+        else:
+            self.disk_tree = construct_empty_tree()
+
+        self.R_list, self.RplusdR_list, self.z_list = _generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
+
+        self.Dphi_z = _compute_forces_on_grid(self.R_list, self.RplusdR_list, self.z_list, 
+                                              self.p, self.u, self.disk_tree)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
