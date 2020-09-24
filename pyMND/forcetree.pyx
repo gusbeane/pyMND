@@ -26,14 +26,15 @@ cdef struct NODE:
 # @cython.boundscheck(False)
 # @cython.cdivision(True)
 cdef class TREE(object):
-    cdef NODE* Nodes
-    cdef NODE* Nodes_base
-    cdef int* Nextnode
-    cdef int MaxNodes, MaxPart, NumPart
-    cdef double[:,:] Pos
-    cdef double[:] Mass
-    cdef int last
-    cdef double Theta, Softening
+    # cdef NODE* Nodes
+    # cdef NODE* Nodes_base
+    # cdef int* Nextnode
+    # cdef int MaxNodes, MaxPart, NumPart
+    # cdef double[:,:] Pos
+    # cdef double[:] Mass
+    # cdef int last
+    # cdef double Theta, Softening
+    # cdef int empty_tree
 
     def __init__(self, MaxNodes, MaxPart, Pos, Mass, Theta, Softening):
         self.MaxNodes = MaxNodes
@@ -60,9 +61,6 @@ cdef class TREE(object):
         
         self.Nextnode = <int *> malloc(self.MaxPart * sizeof(int))
 
-# @cython.wraparound(False)
-# @cython.boundscheck(False)
-# @cython.cdivision(True)
 cdef force_treebuild(TREE tree):
     cdef int i, j, subnode = 0, parent = -1, numnodes
     cdef int nfree, th, nn
@@ -70,8 +68,6 @@ cdef force_treebuild(TREE tree):
     cdef NODE* nfreep
     cdef double length
     cdef double xmin[3], xmax[3]
-
-    # global last, Nodes, Nodes_base, MaxNodes, MaxPart, NumPart, Nextwenode
 
     tree.Nodes = tree.Nodes_base - tree.MaxPart
 
@@ -93,9 +89,6 @@ cdef force_treebuild(TREE tree):
             if (tree.Pos[i][j] < xmin[j]):
                 xmin[j] = tree.Pos[i][j]
     
-    for j in range(3):
-        print(xmin[j], xmax[j])
-
     # determine maximum extension
     length = xmax[0] - xmin[0]
     for j in range(1, 3):
@@ -203,7 +196,7 @@ cdef force_treebuild(TREE tree):
 
     # /* now compute the multipole moments recursively */
     tree.last = -1
-    force_update_node_recursive(tree.MaxPart, -1, tree)
+    tree = force_update_node_recursive(tree.MaxPart, -1, tree)
 
     if (tree.last >= tree.MaxPart):
         tree.Nodes[tree.last].u.d.nextnode = -1
@@ -216,8 +209,7 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
     cdef int j, jj, p, pp = 0, nextsib
     cdef int suns[8]
     cdef double	s[3], mass
-
-    # global last, Nodes, Nodes_base, MaxNodes, MaxPart, NumPart, Nextnode
+    cdef int found_sibling
 
     if no >= tree.MaxPart:	# /* internal node */
         for j in range(8):
@@ -246,17 +238,19 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
                 #  * check if we have a sibling on the same
                 #  * level
                 #  */
+                found_sibling = 0
                 for jj in range(j+1, 8):
                     pp = suns[jj]
                     if (pp >= 0):
+                        found_sibling = 1
                         break
 
-                if (jj < 8):	# /* yes, we do */
+                if found_sibling == 1:	# /* yes, we do */
                     nextsib = pp
                 else:
                     nextsib = sib
 
-                force_update_node_recursive(p, nextsib, tree)
+                tree = force_update_node_recursive(p, nextsib, tree)
 
                 if (p >= tree.MaxPart): # {	/* an internal node or
                              #* pseudo particle */
@@ -271,7 +265,7 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
                     s[1] += tree.Mass[p] * tree.Pos[p][1]
                     s[2] += tree.Mass[p] * tree.Pos[p][2]
 
-        if mass > 0:
+        if mass > 0.0:
             s[0] /= mass
             s[1] /= mass
             s[2] /= mass
@@ -293,6 +287,8 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
             else:
                 tree.Nextnode[tree.last] = no
         tree.last = no
+    
+    return tree
 
 cpdef force_treeevaluate(double[:] pos, TREE tree):
     cdef NODE *nop
@@ -376,7 +372,6 @@ cpdef force_treeevaluate(double[:] pos, TREE tree):
         acc_z += dz * fac
 
         ninteractions += 1
-        print(ninteractions)
 
     # /* store result at the proper place */
 
