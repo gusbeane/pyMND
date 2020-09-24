@@ -43,9 +43,12 @@ spec_param = [('CC', float64),
               ('A', float64),
               ('halo_spinfactor', float64),
               # Auxiliary paramters.
+              ('Theta', float64),
               ('RMASSBINS', int64),
               ('ZMASSBINS', int64),
-              ('PHIMASSBINS', int64)]
+              ('PHIMASSBINS', int64),
+              ('RSIZE', int64),
+              ('ZSIZE', int64)]
 
 @jitclass(spec_param)
 class pyMND_param(object):
@@ -108,6 +111,11 @@ class pyMND_param(object):
         self.RMASSBINS = 2048
         self.ZMASSBINS = 32
         self.PHIMASSBINS = 64
+
+        self.RSIZE = 512
+        self.ZSIZE = 512
+
+        self.Theta = 0.35
     
     def _determine_disk_scalelength(self):
         self.H = sqrt(2.0) / 2.0 * self.LAMBDA / fc(self.CC) * self.R200 #/* first guess for disk scale length */
