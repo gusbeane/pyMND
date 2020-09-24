@@ -45,6 +45,11 @@ cdef class TREE(object):
         self.Mass = Mass
         self.NumPart = len(Pos)
 
+        if self.NumPart > 0:
+            self.empty_tree = 0
+        else:
+            self.empty_tree = 1
+
         self.Theta = Theta
         self.Softening = Softening
 
@@ -296,6 +301,12 @@ cpdef force_treeevaluate(double[:] pos, TREE tree):
     cdef double acc_x, acc_y, acc_z, pos_x, pos_y, pos_z
     cdef double [3] acc
 
+    if tree.empty_tree == 1:
+        acc[0] = 0.0
+        acc[1] = 0.0
+        acc[2] = 0.0
+        return acc
+
     acc_x = 0
     acc_y = 0
     acc_z = 0
@@ -383,4 +394,14 @@ cpdef construct_tree(pos, mass, theta, softening):
     tree = TREE(maxnodes, maxpart, pos, mass, theta, softening)
 
     tree = force_treebuild(tree)
+    return tree
+
+cpdef construct_empty_tree():
+    maxnodes = 0
+    maxpart = 0
+    pos = np.array([]).reshape((0,0))
+    mass = np.array([])
+    theta = 1.0
+    softening = 1.0
+    tree = TREE(maxnodes, maxpart, pos, mass, theta, softening)
     return tree
