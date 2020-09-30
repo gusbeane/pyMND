@@ -77,8 +77,7 @@ class pyMND(object):
 
         self.R_list, self.RplusdR_list, self.z_list = _generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
 
-        self.Dphi_z = _compute_forces_on_grid(self.R_list, self.RplusdR_list, self.z_list, 
-                                              self.p, self.u, self.disk_tree)
+        self.Dphi_R, self.Dphi_z, self.Dphi_z_dR, self.epi_gamma2, self.epi_kappa2 = _compute_forces_on_grid(self.R_list, self.RplusdR_list, self.z_list, self.p, self.u, self.disk_tree)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)

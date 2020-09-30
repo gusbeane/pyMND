@@ -29,7 +29,7 @@ cpdef _hernquist_potential_derivative_z(double R, double z, double M, double a, 
 
     return pot_z
 
-cpdef _halo_potential_derivative_R(double R, double z, double M, double a, double G):
+cpdef _hernquist_potential_derivative_R(double R, double z, double M, double a, double G):
     """
     The value of the partial derivative in R direction of the halo potential.
     Parameters

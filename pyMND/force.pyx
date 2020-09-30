@@ -1,4 +1,4 @@
-from .hernquist import _hernquist_potential_derivative_z
+from .hernquist import _hernquist_potential_derivative_z, _hernquist_potential_derivative_R
 cimport forcetree
 from .forcetree import force_treeevaluate, TREE
 
@@ -24,18 +24,17 @@ cpdef _generate_force_grid(int RSIZE, int ZSIZE, double H, double R200):
     z_list = np.zeros(RSIZE+1)
 
     for i in range(1, RSIZE+1):
-        R_list[i] = exp(log(Baselen) + i * (log(LL) - log(Baselen)) / (RSIZE - 1))
-        RplusdR_list[i] = exp(log(Baselen) + (i + 0.01) * (log(LL) - log(Baselen)) / (RSIZE - 1))
+        R_list[i] = exp(log(Baselen) + (i - 1) * (log(LL) - log(Baselen)) / (RSIZE - 1))
+        RplusdR_list[i] = exp(log(Baselen) + (i - 1 + 0.01) * (log(LL) - log(Baselen)) / (RSIZE - 1))
     
     for i in range(1, ZSIZE+1):
-        z_list[i] = exp(log(Baselen) + i * (log(LL) - log(Baselen)) / (ZSIZE - 1))
+        z_list[i] = exp(log(Baselen) + (i - 1) * (log(LL) - log(Baselen)) / (ZSIZE - 1))
     
     return R_list, RplusdR_list, z_list
 
 cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
                      double MHALO, double RH, double G, forcetree.TREE disk_tree):
     cdef double[:,:] Dphi_z
-    cdef double[:,:] 
     cdef int i, j
     cdef double R, z
     # cdef np.ndarray Dphi_z = np.zeros([RSIZE, ZSIZE], dtype=np.float)
@@ -64,29 +63,75 @@ cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
     return Dphi_z
 
 
-cpdef compute_Dphi_R(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
+cpdef compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, int RSIZE, int ZSIZE,
                      double MHALO, double RH, double G, forcetree.TREE disk_tree):
     cdef double[:,:] Dphi_R
+    cdef double[:,:] Dphi_z
+    cdef double[:,:] Dphi_z_dR
+    cdef double[:] epi_gamma2
+    cdef double[:] epi_kappa2
     cdef int i, j
     cdef double R, z
     # cdef np.ndarray Dphi_z = np.zeros([RSIZE, ZSIZE], dtype=np.float)
 
-    Dphi_R = np.zeros((RSIZE, ZSIZE))
+    Dphi_R = np.zeros((RSIZE+1, ZSIZE+1))
+    Dphi_z = np.zeros((RSIZE+1, ZSIZE+1))
+    Dphi_z_dR = np.zeros((RSIZE+1, ZSIZE+1))
+    epi_gamma2 = np.zeros(RSIZE+1)
+    epi_kappa2 = np.zeros(RSIZE+1)
 
-    for i in range(RSIZE):
+    for i in range(RSIZE+1):
         R = R_list[i]
-        for j in range(RSIZE):
+        RdR = R_dR_list[i]
+        for j in range(RSIZE+1):
             z = z_list[j]
+
+            if i==0:
+                Dphi_R[i][j] = 0.0
+            else:
+                Dphi_R[i][j] = comp_Dphi_R(R, z, MHALO, RH, G, disk_tree)
             
-            # Halo
-            Dphi_R[i][j] = _hernquist_potential_derivative_R(R, z, MHALO, RH, G)
+            if j==0:
+                Dphi_z[i][j] = 0.0
+                Dphi_z_dR[i][j] = 0.0
+            else:
+                Dphi_z[i][j] = comp_Dphi_z(R, z, MHALO, RH, G, disk_tree)
+                Dphi_z_dR[i][j] = comp_Dphi_z(RdR, z, MHALO, RH, G, disk_tree)
+    
+    epi_gamma2[0] = 0.0
+    for i in range(1, RSIZE+1):
+        RdR = R_dR_list[i]
+        dphi_R_dr = comp_Dphi_R(RdR, 0, MHALO, RH, G, disk_tree)
 
-            # Bulge
-            #TODO
+        k2 = 3. / R_list[i] * Dphi_R[i][0] + (dphi_R_dr - Dphi_R[i][0]) / (R_dR_list[i] - R_list[i])
 
-            # Disk
-            pos = np.array([R, 0, z])
-            frc = force_treeevaluate(pos, disk_tree)
-            Dphi_R[i][j] += - G * frc[0]
+        epi_gamma2[i] = 4 / R_list[i] * Dphi_R[i][0] / k2
+        epi_kappa2[i] = k2
+    
+    epi_kappa2[0] = epi_kappa2[1]
 
-    return Dphi_R, epi_gamma2, epi_kappa2
+    return Dphi_R, Dphi_z, Dphi_z_dR, epi_gamma2, epi_kappa2
+
+cpdef comp_Dphi_z(double R, double z, double MHALO, double RH, double G, forcetree.TREE disk_tree):
+    cdef double ans
+    cdef double[:] pos
+    
+    pos = np.array([R, 0, z])
+    frc = force_treeevaluate(pos, disk_tree)
+    
+    ans = _hernquist_potential_derivative_z(R, z, MHALO, RH, G)
+    ans += -G * frc[2]
+
+    return ans
+
+cpdef comp_Dphi_R(double R, double z, double MHALO, double RH, double G, forcetree.TREE disk_tree):
+    cdef double ans
+    cdef double[:] pos
+    
+    pos = np.array([R, 0, z])
+    frc = force_treeevaluate(pos, disk_tree)
+    
+    ans = _hernquist_potential_derivative_R(R, z, MHALO, RH, G)
+    ans += -G * frc[0]
+
+    return ans
