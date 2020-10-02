@@ -91,7 +91,7 @@ class pyMND(object):
         if self.p.M_GASHALO > 0.0:
             self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
         
-        self.data['part2']['pos'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
+        self.data['part2']['vel'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
