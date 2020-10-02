@@ -83,13 +83,15 @@ class pyMND(object):
         self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree)
 
     def _compute_vel(self):
-        self.jeans_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
+        self.force_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
 
         if self.p.M_GASHALO > 0.0:
             self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
+        
+        self.data['part2']['pos'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:

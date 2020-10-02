@@ -53,11 +53,12 @@ def compute_velocity_dispersions_disk(force_grid, p, u):
     VelDispPhi_disk[np.logical_or(VelDispPhi_disk < 0.0, np.isnan(VelDispPhi_disk))] = 0.0
 
     # Now put into a nice dict
-    jeans_grid['VelDispRz_disk'] = VelDispRz_disk
-    jeans_grid['VelDispPhi_disk'] = VelDispPhi_disk
-    jeans_grid['VelStreamPhi_disk'] = VelStreamPhi_disk
+    force_grid['VelDispRz_disk'] = VelDispRz_disk
+    force_grid['VelDispPhi_disk'] = VelDispPhi_disk
+    force_grid['VelStreamPhi_disk'] = VelStreamPhi_disk
 
-    return jeans_grid
+    return force_grid
+
 
 def compute_rho_disk(R, z, p, u):
     M = p.M_DISK
