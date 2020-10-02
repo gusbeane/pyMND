@@ -1,5 +1,5 @@
 import numpy as np
-from .halo import _halo_potential, _halo_potential_derivative_R
+# from .halo import _halo_potential, _halo_potential_derivative_R
 from .gas_halo import _gas_halo_potential, _gas_halo_potential_derivative_R
     
 def potential_derivative_R(pos, p, u):

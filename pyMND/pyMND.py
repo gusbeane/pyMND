@@ -5,7 +5,7 @@ from scipy.spatial import ConvexHull
 
 from .units import pyMND_units
 from .halo import *
-from .haloset import *
+from .haloset import draw_halo_pos
 from .gas_halo import *
 from .gas_haloset import *
 from .util import *
@@ -83,10 +83,12 @@ class pyMND(object):
         self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree)
 
     def _compute_vel(self):
+        self.force_grid = compute_velocity_dispersions_halo(self.force_grid, self.p, self.u)
         self.force_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
 
+
     def _draw_vel(self):
-        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
+        self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.force_grid, self.p, self.u)
 
         if self.p.M_GASHALO > 0.0:
             self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
