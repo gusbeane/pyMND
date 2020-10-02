@@ -20,6 +20,7 @@ spec_param = [('CC', float64),
               ('MGH', float64),
               ('DiskHeight', float64),
               ('GasHaloSpinFraction', float64),
+              ('RadialDispersionFactor', float64),
               ('HubbleParam', float64),
               ('BoxSize', float64),
               ('AddBackgroundGrid', int64),
@@ -54,7 +55,7 @@ spec_param = [('CC', float64),
 class pyMND_param(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH,
                  DiskHeight,
-                 GasHaloSpinFraction, HubbleParam, BoxSize, AddBackgroundGrid,
+                 GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile, Units):
         self.CC = CC
         self.V200 = V200
@@ -67,6 +68,7 @@ class pyMND_param(object):
         self.MGH = MGH
         self.DiskHeight = DiskHeight
         self.GasHaloSpinFraction = GasHaloSpinFraction
+        self.RadialDispersionFactor = RadialDispersionFactor
         self.HubbleParam = HubbleParam
         self.BoxSize = BoxSize
         self.AddBackgroundGrid = AddBackgroundGrid
@@ -186,7 +188,8 @@ class pyMND_param(object):
         return np.power(x / self.H, 2) * vc * np.exp(-x / self.H)
 
 
-def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction, HubbleParam, 
+def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction, 
+                    RadialDispersionFactor, HubbleParam, 
                     BoxSize, AddBackgroundGrid, OutputDir, OutputFile, Units):
     
     return pyMND_param(CC,
@@ -200,6 +203,7 @@ def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHe
                        MGH,
                        DiskHeight,
                        GasHaloSpinFraction,
+                       RadialDispersionFactor,
                        HubbleParam,
                        BoxSize,
                        AddBackgroundGrid,
@@ -219,6 +223,7 @@ if __name__ == '__main__':
     MGH = 0.1
     DiskHeight = 0.12
     GasHaloSpinFraction = 1.0
+    RadialDispersionFactor = 1.0
     HubbleParam = 1.0
     BoxSize=1200.0
     AddBackgroundGrid = 16
@@ -228,6 +233,6 @@ if __name__ == '__main__':
     u = pyMND_units(1.0)
 
     p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight,
-                        GasHaloSpinFraction, HubbleParam, BoxSize, 
+                        GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, 
                         AddBackgroundGrid, OutputDir, OutputFile, u)
 

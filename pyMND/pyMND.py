@@ -31,7 +31,7 @@ class pyMND(object):
 
         self.u = pyMND_units(HubbleParam)
         self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction,
-                                 HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
+                                 RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
 
         # draw positions
         self._draw_pos()
