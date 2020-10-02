@@ -12,16 +12,16 @@ from .util import *
 from .param import gen_pyMND_param
 from .potential import *
 from .diskset import *
-from .force import _generate_force_grid
-from .force_wrapper import _compute_forces_on_grid
+from .force import generate_force_grid, compute_forces
 from .forcetree import construct_tree, construct_empty_tree
+from .disk import *
 
 from tqdm import tqdm
 import time
 
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK,
-                 MD, JD, MGH, DiskHeight, GasHaloSpinFraction,
+                 MD, JD, MGH, DiskHeight, GasHaloSpinFraction, RadialDispersionFactor,
                  HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
@@ -38,6 +38,9 @@ class pyMND(object):
 
         # compute force fields on a grid
         self._compute_force_fields()
+
+        # Compute velocity ellipsoid for each component.
+        self._compute_vel()
 
         # draw velocities
         self._draw_vel()
@@ -75,9 +78,12 @@ class pyMND(object):
         else:
             self.disk_tree = construct_empty_tree()
 
-        self.R_list, self.RplusdR_list, self.z_list = _generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
+        self.force_grid = generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
 
-        self.Dphi_R, self.Dphi_z, self.Dphi_z_dR, self.epi_gamma2, self.epi_kappa2 = _compute_forces_on_grid(self.R_list, self.RplusdR_list, self.z_list, self.p, self.u, self.disk_tree)
+        self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree)
+
+    def _compute_vel(self):
+        self.jeans_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
 
     def _draw_vel(self):
         self.halo_vel = draw_halo_vel(self.data['part1']['pos'], self.p, self.u)
