@@ -48,8 +48,8 @@ def compute_velocity_dispersions_disk(force_grid, p, u):
     VelStreamPhi_disk[VelStreamPhi_disk < 0] = 0.0
     VelStreamPhi_disk = np.sqrt(VelStreamPhi_disk)
 
-    # VelDispPhi_disk = RadialDispersionFactor * VelDispRz_disk
-    # VelDispPhi_disk = np.transpose(np.transpose(VelDispPhi_disk)/epi_gamma2)
+    VelDispPhi_disk = RadialDispersionFactor * VelDispRz_disk
+    VelDispPhi_disk = np.transpose(np.transpose(VelDispPhi_disk)/epi_gamma2)
 
     VelDispRz_disk[0,:] = 0.0
     VelDispPhi_disk[0,:] = 0.0
