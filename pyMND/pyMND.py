@@ -5,6 +5,7 @@ from scipy.spatial import ConvexHull
 
 from .units import pyMND_units
 from .halo import *
+from .bulge import *
 from .haloset import draw_halo_pos
 from .gas_halo import *
 from .gas_haloset import *
@@ -20,8 +21,8 @@ from tqdm import tqdm
 import time
 
 class pyMND(object):
-    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK,
-                 MD, JD, MGH, DiskHeight, GasHaloSpinFraction, RadialDispersionFactor,
+    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE,
+                 MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, RadialDispersionFactor,
                  HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile):
 
@@ -30,7 +31,7 @@ class pyMND(object):
         self.data = {}
 
         self.u = pyMND_units(HubbleParam)
-        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction,
+        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction,
                                  RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
 
         # draw positions
@@ -70,6 +71,9 @@ class pyMND(object):
             self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
             Ndummy = self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS
             self.disk_dummy_mass = np.full(Ndummy, self.p.M_DISK/Ndummy)
+        if self.p.M_BULGE > 0.0:
+            self.data['part3'] = {}
+            self.data['part3']['pos'] = draw_bulge_pos(self.p, self.u)
     
     def _compute_force_fields(self):
         # Setup the tree for the disk.
@@ -85,6 +89,7 @@ class pyMND(object):
     def _compute_vel(self):
         self.force_grid = compute_velocity_dispersions_halo(self.force_grid, self.p, self.u)
         self.force_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
+        self.force_grid = compute_velocity_dispersions_bulge(self.force_grid, self.p, self.u)
 
 
     def _draw_vel(self):
@@ -94,6 +99,9 @@ class pyMND(object):
             self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
         
         self.data['part2']['vel'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
+
+        if self.p.M_BULGE > 0.0:
+            self.data['part3']['vel'] = draw_bulge_vel(self.data['part3']['pos'], self.force_grid, self.p, self.u)
     
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
@@ -134,8 +142,8 @@ class pyMND(object):
         return
 
     def _output_ics_file(self):
-        npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, 0, 0, 0]
-        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_DISK/self.p.N_DISK, 0, 0, 0]
+        npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, self.p.N_BULGE, 0, 0]
+        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_DISK/self.p.N_DISK, self.p.M_BULGE/self.p.N_BULGE, 0, 0]
 
         out_file = self.p.OutputDir + '/' + self.p.OutputFile
         if out_file[5:] != '.hdf5' and out_file[3:] != '.h5':

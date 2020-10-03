@@ -46,7 +46,7 @@ def generate_force_grid(RSIZE, ZSIZE, H, R200):
     return force_grid
 
 cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
-                     double MHALO, double RH, double G, forcetree.TREE disk_tree):
+                     double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
     cdef double[:,:] Dphi_z
     cdef int i, j
     cdef double R, z
@@ -66,7 +66,7 @@ cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
                 Dphi_z[i][j] = _hernquist_potential_derivative_z(R, z, MHALO, RH, G)
 
                 # Bulge
-                #TODO
+                Dphi_z[i][j] = _hernquist_potential_derivative_z(R, z, MBULGE, A, G)
 
                 # Disk
                 pos = np.array([R, 0, z])
@@ -77,7 +77,7 @@ cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
 
 
 cpdef _compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, int RSIZE, int ZSIZE,
-                     double MHALO, double RH, double G, forcetree.TREE disk_tree):
+                     double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
     cdef double[:,:] Dphi_R
     cdef double[:,:] Dphi_z
     cdef double[:,:] Dphi_z_dR
@@ -105,7 +105,7 @@ cpdef _compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, i
                 Dphi_R[i][j] = 0.0
                 VelVc2[i][j] = 0.0
             else:
-                Dphi_R[i][j] = comp_Dphi_R(R, z, MHALO, RH, G, disk_tree)
+                Dphi_R[i][j] = comp_Dphi_R(R, z, MHALO, RH, MBULGE, A, G, disk_tree)
                 VelVc2[i][j] = R * Dphi_R[i][j]
             
             if j==0:
@@ -113,12 +113,12 @@ cpdef _compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, i
                 Dphi_z_dR[i][j] = 0.0
             else:
                 Dphi_z[i][j] = comp_Dphi_z(R, z, MHALO, RH, G, disk_tree)
-                Dphi_z_dR[i][j] = comp_Dphi_z(RdR, z, MHALO, RH, G, disk_tree)
+                Dphi_z_dR[i][j] = comp_Dphi_z(RdR, z, MHALO, RH, MBULGE, A, G, disk_tree)
     
     epi_gamma2[0] = 0.0
     for i in range(1, RSIZE+1):
         RdR = R_dR_list[i]
-        dphi_R_dr = comp_Dphi_R(RdR, 0, MHALO, RH, G, disk_tree)
+        dphi_R_dr = comp_Dphi_R(RdR, 0, MHALO, RH, MBULGE, A, G, disk_tree)
 
         k2 = 3. / R_list[i] * Dphi_R[i][0] + (dphi_R_dr - Dphi_R[i][0]) / (R_dR_list[i] - R_list[i])
 
@@ -144,7 +144,7 @@ def compute_forces(force_grid, p, u, disk_tree):
     
     return force_grid
 
-cpdef comp_Dphi_z(double R, double z, double MHALO, double RH, double G, forcetree.TREE disk_tree):
+cpdef comp_Dphi_z(double R, double z, double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
     cdef double ans
     cdef double[:] pos
     
@@ -152,11 +152,12 @@ cpdef comp_Dphi_z(double R, double z, double MHALO, double RH, double G, forcetr
     frc = force_treeevaluate(pos, disk_tree)
     
     ans = _hernquist_potential_derivative_z(R, z, MHALO, RH, G)
+    ans += _hernquist_potential_derivative_z(R, z, MBULGE, A, G)
     ans += -G * frc[2]
 
     return ans
 
-cpdef comp_Dphi_R(double R, double z, double MHALO, double RH, double G, forcetree.TREE disk_tree):
+cpdef comp_Dphi_R(double R, double z, double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
     cdef double ans
     cdef double[:] pos
     
@@ -164,6 +165,7 @@ cpdef comp_Dphi_R(double R, double z, double MHALO, double RH, double G, forcetr
     frc = force_treeevaluate(pos, disk_tree)
     
     ans = _hernquist_potential_derivative_R(R, z, MHALO, RH, G)
+    ans += _hernquist_potential_derivative_R(R, z, MBULGE, A, G)
     ans += -G * frc[0]
 
     return ans

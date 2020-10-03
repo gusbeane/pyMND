@@ -15,10 +15,13 @@ spec_param = [('CC', float64),
               ('N_HALO', int64),
               ('N_GAS', int64),
               ('N_DISK', int64),
+              ('N_BULGE', int64),
+              ('MB', float64),
               ('MD', float64),
               ('JD', float64),
               ('MGH', float64),
               ('DiskHeight', float64),
+              ('BulgeSize', float64),
               ('GasHaloSpinFraction', float64),
               ('RadialDispersionFactor', float64),
               ('HubbleParam', float64),
@@ -53,8 +56,8 @@ spec_param = [('CC', float64),
 
 @jitclass(spec_param)
 class pyMND_param(object):
-    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH,
-                 DiskHeight,
+    def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH,
+                 DiskHeight, BulgeSize,
                  GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid,
                  OutputDir, OutputFile, Units):
         self.CC = CC
@@ -63,10 +66,13 @@ class pyMND_param(object):
         self.N_HALO = N_HALO
         self.N_GAS = N_GAS
         self.N_DISK = N_DISK
+        self.N_BULGE = N_BULGE
+        self.MB = MB
         self.MD = MD
         self.JD = JD
         self.MGH = MGH
         self.DiskHeight = DiskHeight
+        self.BulgeSize = BulgeSize
         self.GasHaloSpinFraction = GasHaloSpinFraction
         self.RadialDispersionFactor = RadialDispersionFactor
         self.HubbleParam = HubbleParam
@@ -90,7 +96,7 @@ class pyMND_param(object):
         self.RHO_0 = self.M200 / (4. * self.u.PI * (log(1+self.CC) - self.CC/(1.+self.CC)) * self.RS**3.)
 
         self.M_DISK = self.MD * self.M200
-        self.M_BULGE = 0.
+        self.M_BULGE = self.MB * self.M200
         self.M_GASHALO = self.MGH * self.M200
 
         self.M_HALO = self.M200 - self.M_DISK - self.M_BULGE - self.M_GASHALO
@@ -125,7 +131,7 @@ class pyMND_param(object):
         # print("first guess for disk scale length H= ", self.H)
 
         self.Z0 = self.DiskHeight * self.H		#/* sets disk thickness for stars */
-        # self.A = self.BulgeSize * self.H		#/* sets bulge size */
+        self.A = self.BulgeSize * self.H		#/* sets bulge size */
 
         dh = self.H
 
@@ -146,7 +152,7 @@ class pyMND_param(object):
             # print("Jd/J=", jd/self.jhalo,  "hnew: ", self.H)
       
         self.Z0 = self.DiskHeight * self.H #;	/* sets disk thickness */
-        # A = BulgeSize * self.H	#/* sets bulge size */
+        self.A = self.BulgeSize * self.H  #/* sets bulge size */
 
     def _disk_angmomentum(self, tol=1.48e-08, rtol=1.48e-08):
         xmax = min(30 * self.H, self.R200)
@@ -188,7 +194,7 @@ class pyMND_param(object):
         return np.power(x / self.H, 2) * vc * np.exp(-x / self.H)
 
 
-def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight, GasHaloSpinFraction, 
+def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, 
                     RadialDispersionFactor, HubbleParam, 
                     BoxSize, AddBackgroundGrid, OutputDir, OutputFile, Units):
     
@@ -198,10 +204,13 @@ def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHe
                        N_HALO,
                        N_GAS,
                        N_DISK,
+                       N_BULGE,
+                       MB,
                        MD,
                        JD,
                        MGH,
                        DiskHeight,
+                       BulgeSize,
                        GasHaloSpinFraction,
                        RadialDispersionFactor,
                        HubbleParam,
@@ -218,10 +227,13 @@ if __name__ == '__main__':
     N_GAS = 208333
     N_HALO = 375000
     N_DISK = 100000
+    N_BULGE = 10000
+    MB = 0.008
     MD = 0.048
     JD = 0.052
     MGH = 0.1
     DiskHeight = 0.12
+    BulgeSize = 0.12
     GasHaloSpinFraction = 1.0
     RadialDispersionFactor = 1.0
     HubbleParam = 1.0
@@ -232,7 +244,7 @@ if __name__ == '__main__':
 
     u = pyMND_units(1.0)
 
-    p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, MD, JD, MGH, DiskHeight,
+    p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize,
                         GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, 
                         AddBackgroundGrid, OutputDir, OutputFile, u)
 
