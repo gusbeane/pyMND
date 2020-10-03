@@ -112,7 +112,7 @@ cpdef _compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, i
                 Dphi_z[i][j] = 0.0
                 Dphi_z_dR[i][j] = 0.0
             else:
-                Dphi_z[i][j] = comp_Dphi_z(R, z, MHALO, RH, G, disk_tree)
+                Dphi_z[i][j] = comp_Dphi_z(R, z, MHALO, RH, MBULGE, A, G, disk_tree)
                 Dphi_z_dR[i][j] = comp_Dphi_z(RdR, z, MHALO, RH, MBULGE, A, G, disk_tree)
     
     epi_gamma2[0] = 0.0
@@ -133,7 +133,7 @@ def compute_forces(force_grid, p, u, disk_tree):
     R_list, z_list, RplusdR_list = force_grid['R_list'], force_grid['z_list'], force_grid['RplusdR_list']
 
     Dphi_R, Dphi_z, Dphi_z_dR, VelVc2, epi_gamma2, epi_kappa2 = _compute_forces(R_list, z_list, 
-                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO, p.RH, u.G, disk_tree)
+                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO, p.RH, p.M_BULGE, p.A, u.G, disk_tree)
 
     force_grid['Dphi_R'] = Dphi_R
     force_grid['Dphi_z'] = Dphi_z
