@@ -149,7 +149,8 @@ class pyMND_param(object):
       
             self.H = self.H + dh
 
-            # print("Jd/J=", jd/self.jhalo,  "hnew: ", self.H)
+            self.Z0 = self.DiskHeight * self.H
+            self.A = self.BulgeSize * self.H
       
         self.Z0 = self.DiskHeight * self.H #;	/* sets disk thickness */
         self.A = self.BulgeSize * self.H  #/* sets bulge size */
@@ -182,6 +183,7 @@ class pyMND_param(object):
                 # TODO: add bulge
                 # vc2 = self.u.G * (_halo_mass_enclosed(x, self.M_HALO, self.RH, self.u) + mass_cumulative_bulge(x)) / x
                 menc = _halo_mass_enclosed(x[i], self.M_HALO + self.M_GASHALO, self.RH, self.u)
+                menc += _halo_mass_enclosed(x[i], self.M_BULGE, self.A, self.u)
                 vc2[i] = self.u.G * menc / x[i]
 
             y = x[i] / (2 * self.H)
