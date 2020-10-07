@@ -140,6 +140,9 @@ def draw_bulge_vel(pos, force_grid, p, u):
     vz = np.random.normal(size=p.N_BULGE)
     vphi = np.random.normal(size=p.N_BULGE)
 
+    # TODO: track down the real issue so this ad hoc step doesnt have to be taken
+    VelDispPhi[VelDispPhi < 0.0] = 0.0
+
     vR *= np.sqrt(VelDispR)
     vz *= np.sqrt(VelDispz)
     vphi *= np.sqrt(VelDispPhi)
