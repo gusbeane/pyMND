@@ -23,7 +23,7 @@ import time
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE,
                  MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, RadialDispersionFactor,
-                 HubbleParam, BoxSize, AddBackgroundGrid,
+                 HubbleParam, BoxSize, AddBackgroundGrid, SubtractCOMVel,
                  OutputDir, OutputFile):
 
         np.random.seed(160)
@@ -32,7 +32,7 @@ class pyMND(object):
 
         self.u = pyMND_units(HubbleParam)
         self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction,
-                                 RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid, OutputDir, OutputFile, self.u)
+                                 RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid, SubtractCOMVel, OutputDir, OutputFile, self.u)
 
         # draw positions
         self._draw_pos()
@@ -51,6 +51,9 @@ class pyMND(object):
 
         # add background grid of cells
         self._add_background_grid()
+    
+        # subtract COM vel if requested
+        self._subtract_com_vel()
 
         # output to file
         self._output_ics_file()
@@ -138,6 +141,20 @@ class pyMND(object):
         assert len(self.data['part0']['vel'] ) == self.p.N_GAS
         assert len(self.data['part0']['u']   ) == self.p.N_GAS
         assert len(self.data['part0']['mass']) == self.p.N_GAS
+
+        return
+    
+    def _subtract_com_vel(self):
+        if not self.p.SubtractCOMVel:
+            return
+        
+        com_vel = (self.p.M_HALO/self.p.N_HALO) * np.sum(self.data['part1']['vel'], axis=0)
+        com_vel += (self.p.M_DISK/self.p.N_DISK) * np.sum(self.data['part2']['vel'], axis=0)
+        com_vel += (self.p.M_BULGE/self.p.N_BULGE) * np.sum(self.data['part3']['vel'], axis=0)
+        com_vel /= self.p.M_HALO + self.p.M_DISK + self.p.M_BULGE
+
+        for k in self.data.keys():
+            self.data[k]['vel'] -= com_vel
 
         return
 

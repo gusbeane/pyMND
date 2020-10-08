@@ -27,6 +27,7 @@ spec_param = [('CC', float64),
               ('HubbleParam', float64),
               ('BoxSize', float64),
               ('AddBackgroundGrid', int64),
+              ('SubtractCOMVel', int64),
               ('OutputDir', unicode_type),
               ('OutputFile', unicode_type),
               ('u', pyMND_units.class_type.instance_type),
@@ -59,7 +60,7 @@ class pyMND_param(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH,
                  DiskHeight, BulgeSize,
                  GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid,
-                 OutputDir, OutputFile, Units):
+                 SubtractCOMVel, OutputDir, OutputFile, Units):
         self.CC = CC
         self.V200 = V200
         self.LAMBDA = LAMBDA
@@ -78,6 +79,7 @@ class pyMND_param(object):
         self.HubbleParam = HubbleParam
         self.BoxSize = BoxSize
         self.AddBackgroundGrid = AddBackgroundGrid
+        self.SubtractCOMVel = SubtractCOMVel
         self.OutputDir = OutputDir
         self.OutputFile = OutputFile
         self.u = Units
@@ -198,7 +200,7 @@ class pyMND_param(object):
 
 def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, 
                     RadialDispersionFactor, HubbleParam, 
-                    BoxSize, AddBackgroundGrid, OutputDir, OutputFile, Units):
+                    BoxSize, AddBackgroundGrid, SubtractCOMVel, OutputDir, OutputFile, Units):
     
     return pyMND_param(CC,
                        V200,
@@ -218,6 +220,7 @@ def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD
                        HubbleParam,
                        BoxSize,
                        AddBackgroundGrid,
+                       SubtractCOMVel,
                        OutputDir,
                        OutputFile,
                        Units)
@@ -241,6 +244,7 @@ if __name__ == '__main__':
     HubbleParam = 1.0
     BoxSize=1200.0
     AddBackgroundGrid = 16
+    SubtractCOMVel = 1
     OutputDir = './'
     OutputFile = 'MW_ICs'
 
@@ -248,5 +252,5 @@ if __name__ == '__main__':
 
     p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize,
                         GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, 
-                        AddBackgroundGrid, OutputDir, OutputFile, u)
+                        AddBackgroundGrid, SubtractCOMVel, OutputDir, OutputFile, u)
 
