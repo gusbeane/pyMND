@@ -97,7 +97,7 @@ def draw_disk_vel(pos, force_grid, p, u):
     return np.transpose([vx, vy, vz])
 
 def compute_rho_disk(R, z, p, u):
-    M = p.M_DISK
+    M = p.M_STAR
     H = p.H
     Z0 = p.Z0
     

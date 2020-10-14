@@ -20,6 +20,7 @@ spec_param = [('CC', float64),
               ('MD', float64),
               ('JD', float64),
               ('MGH', float64),
+              ('GasFraction', float64),
               ('DiskHeight', float64),
               ('BulgeSize', float64),
               ('GasHaloSpinFraction', float64),
@@ -39,7 +40,9 @@ spec_param = [('CC', float64),
               ('M_DISK', float64),
               ('M_BULGE', float64),
               ('M_GASHALO', float64),
+              ('M_GAS', float64),
               ('M_HALO', float64),
+              ('M_STAR', float64),
               ('RH', float64),
               ('jhalo', float64),
               ('jdisk', float64),
@@ -53,12 +56,13 @@ spec_param = [('CC', float64),
               ('ZMASSBINS', int64),
               ('PHIMASSBINS', int64),
               ('RSIZE', int64),
-              ('ZSIZE', int64)]
+              ('ZSIZE', int64),
+              ('NumGasScaleLengths', float64)]
 
 @jitclass(spec_param)
 class pyMND_param(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH,
-                 DiskHeight, BulgeSize,
+                 GasFraction, DiskHeight, BulgeSize,
                  GasHaloSpinFraction, RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid,
                  SubtractCOMVel, OutputDir, OutputFile, Units):
         self.CC = CC
@@ -72,6 +76,7 @@ class pyMND_param(object):
         self.MD = MD
         self.JD = JD
         self.MGH = MGH
+        self.GasFraction = GasFraction
         self.DiskHeight = DiskHeight
         self.BulgeSize = BulgeSize
         self.GasHaloSpinFraction = GasHaloSpinFraction
@@ -100,6 +105,10 @@ class pyMND_param(object):
         self.M_DISK = self.MD * self.M200
         self.M_BULGE = self.MB * self.M200
         self.M_GASHALO = self.MGH * self.M200
+        self.M_GAS = self.GasFraction * self.M_DISK
+        self.M_STAR = self.M_DISK - self.M_GAS
+
+        assert not(self.M_GASHALO > 0.0 and self.M_GAS > 0.0), "Gas disk and gas halo together not supported."
 
         self.M_HALO = self.M200 - self.M_DISK - self.M_BULGE - self.M_GASHALO
 
@@ -114,6 +123,10 @@ class pyMND_param(object):
 
         if self.M_DISK > 0.0:
             self._determine_disk_scalelength()
+        
+        # TODO: change this in the case of eff EOS model
+        self.NumGasScaleLengths = 8.0
+
         print(self.H)
         print('M_HALO=', self.M_HALO, 'LAMBDA=', self.LAMBDA, 'M_DISK=', self.M_DISK)
     
@@ -198,7 +211,7 @@ class pyMND_param(object):
         return np.power(x / self.H, 2) * vc * np.exp(-x / self.H)
 
 
-def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, 
+def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, GasFraction, DiskHeight, BulgeSize, GasHaloSpinFraction, 
                     RadialDispersionFactor, HubbleParam, 
                     BoxSize, AddBackgroundGrid, SubtractCOMVel, OutputDir, OutputFile, Units):
     
@@ -213,6 +226,7 @@ def gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD
                        MD,
                        JD,
                        MGH,
+                       GasFraction,
                        DiskHeight,
                        BulgeSize,
                        GasHaloSpinFraction,
@@ -236,7 +250,8 @@ if __name__ == '__main__':
     MB = 0.008
     MD = 0.048
     JD = 0.052
-    MGH = 0.1
+    MGH = 0.0
+    GasFraction = 0.1
     DiskHeight = 0.12
     BulgeSize = 0.12
     GasHaloSpinFraction = 1.0

@@ -22,7 +22,7 @@ import time
 
 class pyMND(object):
     def __init__(self, CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE,
-                 MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction, RadialDispersionFactor,
+                 MB, MD, JD, MGH, GasFraction, DiskHeight, BulgeSize, GasHaloSpinFraction, RadialDispersionFactor,
                  HubbleParam, BoxSize, AddBackgroundGrid, SubtractCOMVel,
                  OutputDir, OutputFile):
 
@@ -31,7 +31,7 @@ class pyMND(object):
         self.data = {}
 
         self.u = pyMND_units(HubbleParam)
-        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, DiskHeight, BulgeSize, GasHaloSpinFraction,
+        self.p = gen_pyMND_param(CC, V200, LAMBDA, N_HALO, N_GAS, N_DISK, N_BULGE, MB, MD, JD, MGH, GasFraction, DiskHeight, BulgeSize, GasHaloSpinFraction,
                                  RadialDispersionFactor, HubbleParam, BoxSize, AddBackgroundGrid, SubtractCOMVel, OutputDir, OutputFile, self.u)
 
         # draw positions
@@ -66,14 +66,14 @@ class pyMND(object):
         if self.p.M_GASHALO > 0.0:
             self.data['part0'] = {}
             self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
-        if self.p.M_DISK > 0.0:
+        if self.p.M_STAR > 0.0:
             self.data['part2'] = {}
             self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
 
             self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
             Ndummy = self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS
-            self.disk_dummy_mass = np.full(Ndummy, self.p.M_DISK/Ndummy)
+            self.disk_dummy_mass = np.full(Ndummy, self.p.M_STAR/Ndummy)
         if self.p.M_BULGE > 0.0:
             self.data['part3'] = {}
             self.data['part3']['pos'] = draw_bulge_pos(self.p, self.u)
@@ -160,7 +160,7 @@ class pyMND(object):
 
     def _output_ics_file(self):
         npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, self.p.N_BULGE, 0, 0]
-        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_DISK/self.p.N_DISK, self.p.M_BULGE/self.p.N_BULGE, 0, 0]
+        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_STAR/self.p.N_DISK, self.p.M_BULGE/self.p.N_BULGE, 0, 0]
 
         out_file = self.p.OutputDir + '/' + self.p.OutputFile
         if out_file[5:] != '.hdf5' and out_file[3:] != '.h5':
