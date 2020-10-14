@@ -7,6 +7,7 @@ from .units import pyMND_units
 from .halo import *
 from .bulge import *
 from .haloset import draw_halo_pos
+from .gas_disk import *
 from .gas_halo import *
 from .gas_haloset import *
 from .util import *
@@ -36,6 +37,12 @@ class pyMND(object):
 
         # draw positions
         self._draw_pos()
+
+        # init force field object
+        self._gen_force_fields()
+
+        # initialize gas disk, if necessary
+        self._init_gas_disk()
 
         # compute force fields on a grid
         self._compute_force_fields()
@@ -69,13 +76,14 @@ class pyMND(object):
 
 
             self.disk_dummy_pos = draw_dummy_disk_pos(self.p, self.u)
+            print(self.disk_dummy_pos[:10])
             Ndummy = self.p.RMASSBINS * self.p.ZMASSBINS * self.p.PHIMASSBINS
             self.disk_dummy_mass = np.full(Ndummy, self.p.M_DISK/Ndummy)
         if self.p.M_BULGE > 0.0:
             self.data['part3'] = {}
             self.data['part3']['pos'] = draw_bulge_pos(self.p, self.u)
     
-    def _compute_force_fields(self):
+    def _gen_force_fields(self):
         # Setup the tree for the disk.
         if self.p.M_DISK > 0.0:
             self.disk_tree = construct_tree(self.disk_dummy_pos, self.disk_dummy_mass, self.p.Theta, 0.01 * self.p.H)
@@ -84,6 +92,13 @@ class pyMND(object):
 
         self.force_grid = generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
 
+    def _init_gas_disk(self):
+        if self.p.M_DISK == 0.0 or self.p.GasFraction == 0.0:
+            return
+        
+        self.force_grid = init_gas_field(self.force_grid, self.disk_tree, self.p, self.u)
+
+    def _compute_force_fields(self):
         self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree)
 
     def _compute_vel(self):
@@ -138,6 +153,25 @@ class pyMND(object):
         assert len(self.data['part0']['vel'] ) == self.p.N_GAS
         assert len(self.data['part0']['u']   ) == self.p.N_GAS
         assert len(self.data['part0']['mass']) == self.p.N_GAS
+
+        return
+    
+    def _subtract_com_vel(self):
+        if not self.p.SubtractCOMVel:
+            return
+        
+        com_vel = (self.p.M_HALO/self.p.N_HALO) * np.sum(self.data['part1']['vel'], axis=0)
+        if self.p.M_GAS > 0.0:
+            com_vel += (self.p.M_GAS/self.p.N_GAS) * np.sum(self.data['part0']['vel'], axis=0)
+        if self.p.M_STAR > 0.0:
+            com_vel += (self.p.M_STAR/self.p.N_DISK) * np.sum(self.data['part2']['vel'], axis=0)
+        if self.p.M_BULGE > 0.0:
+            com_vel += (self.p.M_BULGE/self.p.N_BULGE) * np.sum(self.data['part3']['vel'], axis=0)
+        
+        com_vel /= self.p.M_HALO + self.p.M_STAR + self.p.M_BULGE
+
+        for k in self.data.keys():
+            self.data[k]['vel'] -= com_vel
 
         return
 
