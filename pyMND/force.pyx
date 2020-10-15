@@ -45,37 +45,6 @@ def generate_force_grid(RSIZE, ZSIZE, H, R200):
 
     return force_grid
 
-cpdef compute_Dphi_z(double[:] R_list, double[:] z_list, int RSIZE, int ZSIZE,
-                     double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
-    cdef double[:,:] Dphi_z
-    cdef int i, j
-    cdef double R, z
-    # cdef np.ndarray Dphi_z = np.zeros([RSIZE, ZSIZE], dtype=np.float)
-
-    Dphi_z = np.zeros((RSIZE, ZSIZE))
-
-    for i in range(RSIZE+1):
-        R = R_list[i]
-        for j in range(RSIZE+1):
-            if j==0:
-                Dphi_z[i][j] = 0.0
-
-            else:
-                z = z_list[j]
-                # Halo
-                Dphi_z[i][j] = _hernquist_potential_derivative_z(R, z, MHALO, RH, G)
-
-                # Bulge
-                Dphi_z[i][j] = _hernquist_potential_derivative_z(R, z, MBULGE, A, G)
-
-                # Disk
-                pos = np.array([R, 0, z])
-                frc = force_treeevaluate(pos, disk_tree)
-                Dphi_z[i][j] += - G * frc[2]
-
-    return Dphi_z
-
-
 cpdef _compute_forces(double[:] R_list, double[:] z_list, double[:] R_dR_list, int RSIZE, int ZSIZE,
                      double MHALO, double RH, double MBULGE, double A, double G, forcetree.TREE disk_tree):
     cdef double[:,:] Dphi_R
