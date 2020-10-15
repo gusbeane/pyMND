@@ -57,7 +57,9 @@ spec_param = [('CC', float64),
               ('PHIMASSBINS', int64),
               ('RSIZE', int64),
               ('ZSIZE', int64),
-              ('NumGasScaleLengths', float64)]
+              ('NumGasScaleLengths', float64),
+              ('P4_factor', float64),
+              ('Tgas', float64)]
 
 @jitclass(spec_param)
 class pyMND_param(object):
@@ -94,6 +96,9 @@ class pyMND_param(object):
 
         # Set some auxilliary parameters.
         self._auxilliary()
+
+        # Initialize relevant EOS stuff
+        self._init_eos()
 
     def _structure(self):
         self.M200 = self.V200**3. / (10 * self.u.G * self.u.H0)
@@ -139,6 +144,17 @@ class pyMND_param(object):
         self.ZSIZE = 512
 
         self.Theta = 0.35
+    
+    def _init_eos(self):
+        self.Tgas = 1.0e4
+        meanweight = 4. / (8. - 5. * (1. - self.u.HYDROGEN_MASSFRAC)) # assumes full ioniziation
+
+        u4 = 1. / meanweight * (1.0 / self.u.GAMMA_MINUS1) * (self.u.BOLTZMANN / self.u.PROTONMASS) * 1.0e4
+        u4 *= self.u.UnitMass_in_g / self.u.UnitEnergy_in_cgs
+
+        self.P4_factor = self.u.GAMMA_MINUS1 * u4
+        print('P4_factor = ', self.P4_factor)
+        # multiplying P4_factor by rho gives pressure at 1E4 K
     
     def _determine_disk_scalelength(self):
         self.H = sqrt(2.0) / 2.0 * self.LAMBDA / fc(self.CC) * self.R200 #/* first guess for disk scale length */
