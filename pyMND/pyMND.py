@@ -92,17 +92,17 @@ class pyMND(object):
             self.disk_tree = construct_tree(self.disk_dummy_pos, self.disk_dummy_mass, self.p.Theta, 0.01 * self.p.H)
         else:
             self.disk_tree = construct_empty_tree()
-
+        
         self.force_grid = generate_force_grid(self.p.RSIZE, self.p.ZSIZE, self.p.H, self.p.R200)
 
     def _init_gas_disk(self):
         if self.p.M_DISK == 0.0 or self.p.GasFraction == 0.0:
             return
         
-        self.force_grid = init_gas_field(self.force_grid, self.disk_tree, self.p, self.u)
+        self.force_grid, self.gas_tree = init_gas_field(self.force_grid, self.disk_tree, self.p, self.u)
 
     def _compute_force_fields(self):
-        self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree)
+        self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree, self.gas_tree)
 
     def _compute_vel(self):
         self.force_grid = compute_velocity_dispersions_halo(self.force_grid, self.p, self.u)
@@ -164,8 +164,8 @@ class pyMND(object):
             return
         
         com_vel = (self.p.M_HALO/self.p.N_HALO) * np.sum(self.data['part1']['vel'], axis=0)
-        if self.p.M_GAS > 0.0:
-            com_vel += (self.p.M_GAS/self.p.N_GAS) * np.sum(self.data['part0']['vel'], axis=0)
+        # if self.p.M_GAS > 0.0:
+            # com_vel += (self.p.M_GAS/self.p.N_GAS) * np.sum(self.data['part0']['vel'], axis=0)
         if self.p.M_STAR > 0.0:
             com_vel += (self.p.M_STAR/self.p.N_DISK) * np.sum(self.data['part2']['vel'], axis=0)
         if self.p.M_BULGE > 0.0:
