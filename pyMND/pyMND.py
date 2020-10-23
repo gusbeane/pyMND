@@ -101,6 +101,10 @@ class pyMND(object):
         
         self.force_grid, self.gas_tree = init_gas_field(self.force_grid, self.disk_tree, self.p, self.u)
 
+        # Now draw gas positions
+        self.data['part0'] = {}
+        self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_disk_pos(self.force_grid, self.p)
+
     def _compute_force_fields(self):
         self.force_grid = compute_forces(self.force_grid, self.p, self.u, self.disk_tree, self.gas_tree)
 
@@ -115,6 +119,10 @@ class pyMND(object):
 
         if self.p.M_GASHALO > 0.0:
             self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
+        
+        if self.p.M_DISK != 0 and self.p.GasFraction != 0.0:
+            # placeholder for now
+            self.data['part0']['vel'] = np.zeros((self.p.N_GAS, 3)) 
         
         self.data['part2']['vel'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
 

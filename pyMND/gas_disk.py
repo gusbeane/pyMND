@@ -7,6 +7,7 @@ import sys
 
 from .forcetree import construct_tree, construct_empty_tree
 from .force import compute_vertical_forces
+from .util import R2_method
 
 global ctr 
 ctr = 0
@@ -53,6 +54,42 @@ def init_gas_field(force_grid, disk_tree, p, u):
     gas_tree = construct_tree(dummy_pos, dummy_mass, p.Theta, 0.01 * p.H)
 
     return force_grid, gas_tree
+
+def draw_gas_disk_pos(force_grid, p):
+    FracEnclosed = integrate_RhoGas(force_grid['RhoGas'], force_grid, p)
+
+    qlist, ulist = R2_method(p.N_GAS)
+    vlist = (np.arange(0, p.N_GAS) + 0.5)/p.N_GAS
+
+    pos = _draw_gas_disk_pos(qlist, ulist, vlist, force_grid['R_list'], force_grid['z_list'], FracEnclosed, p)
+
+    mass = np.full(p.N_GAS, p.M_GAS/p.N_GAS)
+
+    return pos, mass
+
+@njit
+def _draw_gas_disk_pos(qlist, ulist, vlist, R_list, z_list, FracEnclosed, p):
+    pos = np.zeros((p.N_GAS, 3))
+    
+    for i in range(p.N_GAS):
+        q = qlist[i]
+        u = ulist[i]
+        v = vlist[i]
+
+        R = draw_R_gas_disk(q, p)
+
+        u = 2. * u - 1.
+        sign_u = np.sign(u)
+        u = np.abs(u)
+        z = sign_u * draw_z_gas_disk(R, q, R_list, z_list, FracEnclosed, p)
+
+        theta = (2.*np.pi) * v 
+
+        pos[i][0] = R * np.cos(theta)
+        pos[i][1] = R * np.sin(theta)
+        pos[i][2] = z
+    
+    return pos
 
 @njit
 def step_gas_equilibrium(RhoGas, R_list, z_list, Dphi_z, p, u, ctr):
