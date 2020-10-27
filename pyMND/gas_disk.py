@@ -8,6 +8,7 @@ import sys
 from .forcetree import construct_tree, construct_empty_tree
 from .force import compute_vertical_forces
 from .util import R1_method, R2_method
+from scipy.interpolate import RectBivariateSpline
 
 global ctr 
 ctr = 0
@@ -204,7 +205,7 @@ def draw_gas_disk_dummy_pos(FracEnclosed, R_list, z_list, p, u):
     
     return pos, mass
 
-@njit
+@njit(cache=True)
 def surface_density_gasdisk(R, p, u):
     M_GAS = p.M_GAS
     H = p.H
@@ -220,7 +221,7 @@ def surface_density_gasdisk(R, p, u):
     return ans
 
 # R is assumed to be in units of scale lengths
-@njit
+@njit(cache=True)
 def fraction_enclosed_gasdisk(R, p):
     NumGasScaleLengths = p.NumGasScaleLengths
 
@@ -335,3 +336,70 @@ def draw_z_gas_disk(R, q, R_list, z_list, FracEnclosed, p):
 @njit
 def eos_gas(rho, p):
     return rho * p.P4_factor
+
+def compute_velocity_dispersions_gas_disk(force_grid, p, u):
+    RhoGas = force_grid['RhoGas']    
+    R_list, z_list = force_grid['R_list'], force_grid['z_list']
+    Dphi_R = force_grid['Dphi_R']
+
+    VelStreamPhi_gas_disk = _compute_velstream_gas_disk(np.array(RhoGas), np.array(Dphi_R), np.array(R_list), p, u)
+
+    # Now put into a nice dict
+    force_grid['VelStreamPhi_gas_disk'] = VelStreamPhi_gas_disk
+    print(np.shape(force_grid['VelStreamPhi_gas_disk']))
+    print(np.shape(R_list))
+    print(np.shape(z_list))
+
+    return force_grid
+
+@njit(cache=True)
+def _compute_velstream_gas_disk(RhoGas, Dphi_R, R_list, p, u):
+    VelStreamPhi_gas_disk = np.zeros((p.RSIZE+1, p.ZSIZE+1))
+
+    rho = surface_density_gasdisk(R_list, p, u)
+
+    for i in range(p.RSIZE+1):
+        for j in range(p.RSIZE+1):
+            vphi = Dphi_R[i][j]
+
+            P2 = eos_gas(RhoGas[i][j], p)
+            P1 = eos_gas(1.1*RhoGas[i][j], p)
+
+            if RhoGas[i][j] > 0.0 and RhoGas[i+1][j] > 0.0:
+                rho2 = rho[i]
+                rho1 = rho[i+1]
+                dlnrho = np.log(rho1/rho2)/(R_list[i+1]-R_list[i])
+
+                dlnP = np.log(P1 / P2) / np.log(1.1)
+                vphipress = dlnrho * dlnP * P2 / RhoGas[i][j]
+
+                if vphi + vphipress < 0.0:
+                    vphi = 0.0
+                else:
+                    vphi += vphipress
+            
+            VelStreamPhi_gas_disk[i][j] = np.sqrt(R_list[i] * vphi)
+    
+    return VelStreamPhi_gas_disk
+
+def draw_gas_disk_vel(pos, force_grid, p, u):
+    # Setup bivariate splines
+    VelStreamPhi_disk_spline = RectBivariateSpline(force_grid['R_list'], force_grid['z_list'], force_grid['VelStreamPhi_gas_disk'])
+
+    R = np.linalg.norm(pos[:,:2], axis=1)
+    z = np.abs(pos[:,2])
+
+    # Interpolate the correct sigmas
+    VelStreamPhi = VelStreamPhi_disk_spline(R, z, grid=False)
+
+    # Now draw from gaussians
+    vphi = np.zeros(p.N_GAS)
+
+    vphi += VelStreamPhi
+
+    # Convert to cartesian
+    vx = - vphi * pos[:,1] / R
+    vy =  vphi * pos[:,0] / R
+    vz = np.zeros(p.N_GAS)
+
+    return np.transpose([vx, vy, vz])
