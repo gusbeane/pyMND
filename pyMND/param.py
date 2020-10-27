@@ -58,6 +58,7 @@ spec_param = [('CC', float64),
               ('RSIZE', int64),
               ('ZSIZE', int64),
               ('NumGasScaleLengths', float64),
+              ('u4', float64),
               ('P4_factor', float64),
               ('Tgas', float64)]
 
