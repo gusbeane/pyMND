@@ -135,6 +135,9 @@ class pyMND(object):
     def _get_gas_thermal_energy(self):
         if self.p.M_GASHALO > 0.0:
             self.data['part0']['u'] = gas_halo_thermal_energy(self.data['part0']['pos'], self.p, self.u)
+        
+        if self.p.M_DISK > 0.0 and self.p.GasFraction > 0.0:
+            self.data['part0']['u'] = get_gas_disk_thermal_energy(self.p, self.u)
     
     def _add_background_grid(self):
         if self.p.AddBackgroundGrid == 0:

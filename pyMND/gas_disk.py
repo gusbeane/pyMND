@@ -403,3 +403,6 @@ def draw_gas_disk_vel(pos, force_grid, p, u):
     vz = np.zeros(p.N_GAS)
 
     return np.transpose([vx, vy, vz])
+
+def get_gas_disk_thermal_energy(p, u):
+    return np.full(p.N_GAS, p.u4)

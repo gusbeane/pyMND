@@ -152,6 +152,7 @@ class pyMND_param(object):
         u4 = 1. / meanweight * (1.0 / self.u.GAMMA_MINUS1) * (self.u.BOLTZMANN / self.u.PROTONMASS) * 1.0e4
         u4 *= self.u.UnitMass_in_g / self.u.UnitEnergy_in_cgs
 
+        self.u4 = u4
         self.P4_factor = self.u.GAMMA_MINUS1 * u4
         print('P4_factor = ', self.P4_factor)
         # multiplying P4_factor by rho gives pressure at 1E4 K
