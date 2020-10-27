@@ -7,7 +7,7 @@ import sys
 
 from .forcetree import construct_tree, construct_empty_tree
 from .force import compute_vertical_forces
-from .util import R2_method
+from .util import R1_method, R2_method
 
 global ctr 
 ctr = 0
@@ -58,7 +58,8 @@ def init_gas_field(force_grid, disk_tree, p, u):
 def draw_gas_disk_pos(force_grid, p):
     FracEnclosed = integrate_RhoGas(force_grid['RhoGas'], force_grid, p)
 
-    qlist, ulist = R2_method(p.N_GAS)
+    qlist = R1_method(p.N_GAS)
+    ulist = R1_method(p.N_GAS, g=1.4142135623730950488) # sqrt(2)
     vlist = (np.arange(0, p.N_GAS) + 0.5)/p.N_GAS
 
     pos = _draw_gas_disk_pos(qlist, ulist, vlist, force_grid['R_list'], force_grid['z_list'], FracEnclosed, p)
@@ -81,7 +82,7 @@ def _draw_gas_disk_pos(qlist, ulist, vlist, R_list, z_list, FracEnclosed, p):
         u = 2. * u - 1.
         sign_u = np.sign(u)
         u = np.abs(u)
-        z = sign_u * draw_z_gas_disk(R, q, R_list, z_list, FracEnclosed, p)
+        z = sign_u * draw_z_gas_disk(R, u, R_list, z_list, FracEnclosed, p)
 
         theta = (2.*np.pi) * v 
 
@@ -292,6 +293,12 @@ def draw_R_gas_disk(q, p):
 
 @njit
 def draw_z_gas_disk(R, q, R_list, z_list, FracEnclosed, p):
+    #Check if q is near 0 or 1
+    if q < 1e-12:
+        return 0.0
+    if 1.-q < 1e-4:
+        q = 1.0 - 1e-4
+
     # First, find the R index
     for ui in range(p.RSIZE-1):
         if R > R_list[ui] and R < R_list[ui+1]:

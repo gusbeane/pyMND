@@ -51,13 +51,15 @@ def _gc_int(x):
     return np.power(np.log(1 + x) - x / (1 + x), 0.5) * np.power(x, 1.5) / np.power(1 + x, 2)
 
 @njit(cache=True)
-def R2_method(N):
+def R1_method(N, g = 1.6180339887498948482):
     """
     Returns draws from the R2 method for N particles.
     Parameters
     ----------
     N : int
         Number of draws to make.
+    g : float, optional
+        Number to increment by, by default uses the optimal low-discrepancy number.
     Returns
     -------
     x1 : `~numpy.ndarray` of shape `(N)`
@@ -65,7 +67,34 @@ def R2_method(N):
     x2 : `~numpy.ndarray` of shape `(N)'
         Draws along the second dimension.
     """
-    g = 1.32471795724474602596
+    a1 = 1.0/g
+
+    x1 = np.zeros(N)
+
+    x1[0] = 0.5
+
+    for i in range(1, N):
+        x1[i] = np.mod(x1[i-1] + a1, 1.0)
+    
+    return x1
+
+@njit(cache=True)
+def R2_method(N, g = 1.32471795724474602596):
+    """
+    Returns draws from the R2 method for N particles.
+    Parameters
+    ----------
+    N : int
+        Number of draws to make.
+    g : float, optional
+        Number to increment by, by default uses the optimal low-discrepancy number.
+    Returns
+    -------
+    x1 : `~numpy.ndarray` of shape `(N)`
+        Draws along the first dimension.
+    x2 : `~numpy.ndarray` of shape `(N)'
+        Draws along the second dimension.
+    """
     a1 = 1.0/g
     a2 = 1.0/(g*g)
 
@@ -81,13 +110,15 @@ def R2_method(N):
     return x1, x2
 
 @njit(cache=True)
-def R3_method(N):
+def R3_method(N, g = 1.22074408460575947536):
     """
     Returns draws from the R3 method for N particles.
     Parameters
     ----------
     N : int
         Number of draws to make.
+    g : float, optional
+        Number to increment by, by default uses the optimal low-discrepancy number.
     Returns
     -------
     x1 : `~numpy.ndarray` of shape `(N)`
@@ -97,7 +128,6 @@ def R3_method(N):
     x3 : `~numpy.ndarray` of shape `(N)'
         Draws along the second dimension.
     """
-    g = 1.22074408460575947536
     a1 = 1.0/g
     a2 = 1.0/(g*g)
     a3 = 1.0/(g*g*g)
