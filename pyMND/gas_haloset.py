@@ -5,11 +5,9 @@ from .util import *
 
 def draw_gas_halo_pos(p):
     """
-    Evenly draw positions from a Hernquist profile.
+    Draws positions from a Hernquist profile.
 
-    Evenly draws 3D values for a Hernquist profile of a given scale length. Distances are
-    evenly drawn and then angles are drawn from a 3D golden spiral to evenly space gas
-    cells. NOTE: The profile is cut off at R200.
+    Cuts off particles at R200.
     Parameters
     ----------
     p : `~pyMND.param.pyMND_param`
@@ -31,11 +29,11 @@ def draw_gas_halo_pos(p):
 
     mg = M/N
 
-    u, v = R2_method(N)
+    u, v = np.random.rand(2, N)
     phi = 2.*np.pi * u
     theta = np.arccos(2.*v - 1)
 
-    f = np.arange(0.5, N)/N
+    f = np.random.rand(N)
     sqrtf = np.sqrt(f)
     r = a * sqrtf / (1. - sqrtf)
 

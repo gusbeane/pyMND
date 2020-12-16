@@ -223,7 +223,7 @@ if __name__ == '__main__':
     GasHaloSpinFraction = 1.0
     HubbleParam = 1.0
     BoxSize=1200.0
-    AddBackgroundGrid = 16
+    AddBackgroundGrid = 0
     OutputDir='./'
     OutputFile='MW_ICs'
     t = pyMND(CC, V200, LAMBDA, N_HALO, N_GAS, MGH, GasHaloSpinFraction, HubbleParam, BoxSize, 
