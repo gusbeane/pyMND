@@ -103,7 +103,7 @@ def compute_forces(force_grid, p, u, disk_tree, gas_tree):
     R_list, z_list, RplusdR_list = force_grid['R_list'], force_grid['z_list'], force_grid['RplusdR_list']
 
     Dphi_R, Dphi_z, Dphi_z_dR, VelVc2, epi_gamma2, epi_kappa2 = _compute_forces(R_list, z_list, 
-                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO, p.RH, p.M_BULGE, p.A, u.G, disk_tree, gas_tree)
+                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO+p.M_GASHALO, p.RH, p.M_BULGE, p.A, u.G, disk_tree, gas_tree)
 
     force_grid['Dphi_R'] = Dphi_R
     force_grid['Dphi_z'] = Dphi_z
@@ -141,7 +141,7 @@ def compute_vertical_forces(force_grid, p, u, disk_tree, gas_tree):
     R_list, z_list, RplusdR_list = force_grid['R_list'], force_grid['z_list'], force_grid['RplusdR_list']
 
     Dphi_z = _compute_vertical_forces(R_list, z_list, 
-                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO, p.RH, p.M_BULGE, p.A, u.G, disk_tree, gas_tree)
+                            RplusdR_list, p.RSIZE, p.ZSIZE, p.M_HALO+p.M_GASHALO, p.RH, p.M_BULGE, p.A, u.G, disk_tree, gas_tree)
 
     force_grid['Dphi_z'] = Dphi_z
     

@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import RectBivariateSpline
 
 from .potential import circular_velocity_squared
 from .util import *
@@ -48,7 +49,7 @@ def draw_gas_halo_pos(p):
     
     return M, pos, mass
 
-def draw_gas_halo_vel(pos, p, u):
+def draw_gas_halo_vel(pos, p, u, force_grid):
     """
     Assign gas halo velocities.
 
@@ -69,11 +70,13 @@ def draw_gas_halo_vel(pos, p, u):
     """
     halo_spinfactor, GasHaloSpinFraction = p.halo_spinfactor, p.GasHaloSpinFraction
 
-    vcsq = circular_velocity_squared(pos, p, u)
+    R = np.linalg.norm(pos[:,:2], axis=1)
+    z = np.abs(pos[:,2])
+
+    VCircSq_spline = RectBivariateSpline(force_grid['R_list'], force_grid['z_list'], force_grid['VelVc2'])
+    vcsq = VCircSq_spline(R, z, grid=False)
 
     vphi = halo_spinfactor * GasHaloSpinFraction * np.sqrt(vcsq)
-
-    R = np.linalg.norm(pos[:,:2], axis=1)
 
     vel = np.zeros(np.shape(pos))
     vel[:,0] = - vphi * pos[:,1] / R

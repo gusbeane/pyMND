@@ -73,7 +73,7 @@ class pyMND(object):
         if self.p.M_GASHALO > 0.0:
             self.data['part0'] = {}
             self.p.N_GAS, self.data['part0']['pos'], self.data['part0']['mass'] = draw_gas_halo_pos(self.p)
-        if self.p.M_STAR > 0.0:
+        if self.p.M_DISK > 0.0:
             self.data['part2'] = {}
             self.data['part2']['pos'] = draw_disk_pos(self.p, self.u)
 
@@ -97,6 +97,7 @@ class pyMND(object):
 
     def _init_gas_disk(self):
         if self.p.M_DISK == 0.0 or self.p.GasFraction == 0.0:
+            self.gas_tree = construct_empty_tree()
             return
         
         self.force_grid, self.gas_tree = init_gas_field(self.force_grid, self.disk_tree, self.p, self.u)
@@ -110,8 +111,12 @@ class pyMND(object):
 
     def _compute_vel(self):
         self.force_grid = compute_velocity_dispersions_halo(self.force_grid, self.p, self.u)
-        self.force_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
-        self.force_grid = compute_velocity_dispersions_bulge(self.force_grid, self.p, self.u)
+        if self.p.M_DISK > 0.0:
+            self.force_grid = compute_velocity_dispersions_disk(self.force_grid, self.p, self.u)
+        
+        if self.p.M_BULGE > 0.0:
+            self.force_grid = compute_velocity_dispersions_bulge(self.force_grid, self.p, self.u)
+        
         if self.p.M_DISK > 0.0 and self.p.GasFraction > 0.0:
             self.force_grid = compute_velocity_dispersions_gas_disk(self.force_grid, self.p, self.u)
 
@@ -120,14 +125,15 @@ class pyMND(object):
         self.data['part1']['vel'] = draw_halo_vel(self.data['part1']['pos'], self.force_grid, self.p, self.u)
 
         if self.p.M_GASHALO > 0.0:
-            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u)
+            self.data['part0']['vel'] = draw_gas_halo_vel(self.data['part0']['pos'], self.p, self.u, self.force_grid)
         
         if self.p.M_DISK != 0 and self.p.GasFraction != 0.0:
             # placeholder for now
             # self.data['part0']['vel'] = np.zeros((self.p.N_GAS, 3)) 
             self.data['part0']['vel'] = draw_gas_disk_vel(self.data['part0']['pos'], self.force_grid, self.p, self.u)
         
-        self.data['part2']['vel'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
+        if self.p.M_DISK > 0.0:
+            self.data['part2']['vel'] = draw_disk_vel(self.data['part2']['pos'], self.force_grid, self.p, self.u)
 
         if self.p.M_BULGE > 0.0:
             self.data['part3']['vel'] = draw_bulge_vel(self.data['part3']['pos'], self.force_grid, self.p, self.u)
@@ -194,7 +200,13 @@ class pyMND(object):
 
     def _output_ics_file(self):
         npart = [self.p.N_GAS, self.p.N_HALO, self.p.N_DISK, self.p.N_BULGE, 0, 0]
-        masses = [0, self.p.M_HALO/self.p.N_HALO, self.p.M_STAR/self.p.N_DISK, self.p.M_BULGE/self.p.N_BULGE, 0, 0]
+        mdisk, mbulge = 0.0, 0.0
+        if self.p.M_STAR > 0.0:
+            mdisk = self.p.M_STAR/self.p.N_DISK
+        if self.p.M_BULGE > 0.0:
+            mbulge = self.p.M_BULGE/self.p.N_BULGE
+
+        masses = [0, self.p.M_HALO/self.p.N_HALO, mdisk, mbulge, 0, 0]
 
         out_file = self.p.OutputDir + '/' + self.p.OutputFile
         if out_file[5:] != '.hdf5' and out_file[3:] != '.h5':
