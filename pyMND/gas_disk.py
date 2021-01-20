@@ -59,9 +59,12 @@ def init_gas_field(force_grid, disk_tree, p, u):
 def draw_gas_disk_pos(force_grid, p):
     FracEnclosed = integrate_RhoGas(force_grid['RhoGas'], force_grid, p)
 
-    qlist = R1_method(p.N_GAS)
-    ulist = R1_method(p.N_GAS, g=1.4142135623730950488) # sqrt(2)
-    vlist = (np.arange(0, p.N_GAS) + 0.5)/p.N_GAS
+    # qlist = R1_method(p.N_GAS)
+    # ulist = R1_method(p.N_GAS, g=1.4142135623730950488) # sqrt(2)
+    # vlist = (np.arange(0, p.N_GAS) + 0.5)/p.N_GAS
+    qlist = np.random.rand(p.N_GAS)
+    ulist = np.random.rand(p.N_GAS)
+    vlist = np.random.rand(p.N_GAS)
 
     pos = _draw_gas_disk_pos(qlist, ulist, vlist, force_grid['R_list'], force_grid['z_list'], FracEnclosed, p)
 
