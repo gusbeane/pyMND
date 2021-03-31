@@ -18,8 +18,8 @@ cdef class TREE(object):
     cdef NODE* Nodes_base
     cdef int* Nextnode
     cdef int MaxNodes, MaxPart, NumPart
-    cdef double[:,:] Pos
-    cdef double[:] Mass
+    cdef double** Pos
+    cdef double* Mass
     cdef int last
     cdef double Theta, Softening
     cdef int empty_tree

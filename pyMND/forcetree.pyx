@@ -2,10 +2,11 @@ import numpy as np
 cimport numpy as np
 import sys
 
-from math import sqrt
+from libc.math cimport sqrt,fabs
 
 from libc.stdlib cimport malloc, free
 import cython
+from cython.parallel import prange
 
 cdef struct dd:
     float[3] s 
@@ -32,9 +33,19 @@ cdef class TREE(object):
 
         self._allocate()
 
-        self.Pos = Pos
-        self.Mass = Mass
+        #self.Pos = Pos
+        #self.Mass = Mass
         self.NumPart = len(Pos)
+        
+        self.Mass = <double *> malloc(self.NumPart*sizeof(double))
+        for i in range(self.NumPart):
+            self.Mass[i] = Mass[i]
+
+        self.Pos = <double **> malloc(self.NumPart*sizeof(double*))
+        for i in range(self.NumPart):
+            self.Pos[i] = <double *> malloc(3*sizeof(double))
+            for j in range(3):
+                self.Pos[i][j] = Pos[i][j]
 
         if self.NumPart > 0:
             self.empty_tree = 0
@@ -280,12 +291,16 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
     
     return tree
 
-cpdef force_treeevaluate(double[:] pos, TREE tree):
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef double * force_treeevaluate(double* pos, TREE tree) nogil:
     cdef NODE *nop
     cdef int no, ninteractions
     cdef double r2, dx, dy, dz, mass, r, fac, u, h, h_inv, h3_inv
     cdef double acc_x, acc_y, acc_z, pos_x, pos_y, pos_z
-    cdef double [3] acc
+    cdef double * acc
+
+    acc = <double *> malloc(3*sizeof(double)) 
 
     if tree.empty_tree == 1:
         acc[0] = 0.0
@@ -337,9 +352,9 @@ cpdef force_treeevaluate(double[:] pos, TREE tree):
                 continue
             # /* check in addition whether we lie inside the cell */
 
-            if (abs(nop.center[0] - pos_x) < 0.60 * nop.length):
-                if (abs(nop.center[1] - pos_y) < 0.60 * nop.length):
-                    if (abs(nop.center[2] - pos_z) < 0.60 * nop.length):
+            if (fabs(nop.center[0] - pos_x) < 0.60 * nop.length):
+                if (fabs(nop.center[1] - pos_y) < 0.60 * nop.length):
+                    if (fabs(nop.center[2] - pos_z) < 0.60 * nop.length):
                         no = nop.u.d.nextnode
                         continue
 
@@ -371,26 +386,49 @@ cpdef force_treeevaluate(double[:] pos, TREE tree):
 
     return acc
 
-cpdef _force_treeevaluate_loop(double[:,:] pos, int N, TREE tree):
-    cdef double [3] this_pos, this_acc
-    acc = np.zeros((N,3))
+@cython.boundscheck(False)
+cpdef _force_treeevaluate_loop(double[:,:] pos, int N, TREE tree, int num_threads):
+    cdef double ** acc, **posc
+    cdef double * acci, *posi
+    cdef int i, j
+    cdef double [:,:] acc_out
 
+    # coerce python memory views into c arrays
+    # needed in order to release GIL for prange
+    acc = <double **> malloc(N * sizeof(double*))
+    posc = <double **> malloc(N * sizeof(double*))
     for i in range(N):
-        this_pos[0] = pos[i][0]
-        this_pos[1] = pos[i][1]
-        this_pos[2] = pos[i][2]
-
-        this_acc = force_treeevaluate(this_pos, tree)
-        acc[i][0] = this_acc[0]
-        acc[i][1] = this_acc[1]
-        acc[i][2] = this_acc[2]
-
-    return acc
+        acc[i] = <double *> malloc(3 * sizeof(double))
+        posc[i] = <double *> malloc(3 * sizeof(double))
+        for j in range(3):
+            posc[i][j] = pos[i][j]
+    
+    acci = <double *> malloc(3 * sizeof(double))
+    posi = <double *> malloc(3 * sizeof(double))
 
 
-cpdef force_treeevaluate_loop(pos, tree):
+    with nogil:
+        for i in prange(N, num_threads=num_threads):
+            posi[0] = posc[i][0]
+            posi[1] = posc[i][1]
+            posi[2] = posc[i][2]
+
+            acci = force_treeevaluate(posi, tree)
+            acc[i][0] = acci[0]
+            acc[i][1] = acci[1]
+            acc[i][2] = acci[2]
+
+    acc_out = np.zeros((N, 3))
+    for i in range(N):
+        for j in range(3):
+            acc_out[i][j] = acc[i][j]
+
+    return acc_out
+
+
+cpdef force_treeevaluate_loop(pos, tree, num_threads=1):
     N = len(pos)
-    return _force_treeevaluate_loop(pos, N, tree)
+    return _force_treeevaluate_loop(pos, N, tree, num_threads)
 
 cpdef construct_tree(pos, mass, theta, softening):
     maxpart = pos.shape[0]
