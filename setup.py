@@ -17,7 +17,8 @@ VERS = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VERS, init_string, re.M)
 __version__ = mo.group(1)
 
-ext = cythonize([Extension("pyMND.forcetree", ["pyMND/forcetree.pyx"], include_dirs=[numpy.get_include()]),
+ext = cythonize([Extension("pyMND.forcetree", ["pyMND/forcetree.pyx"], include_dirs=[numpy.get_include()], libraries=["m"],
+                           extra_compile_args=['-fopenmp'], extra_link_args=['-fopenmp']),
                  Extension("pyMND.force", ["pyMND/force.pyx"], include_dirs=[numpy.get_include()]),
                  Extension("pyMND.hernquist", ["pyMND/hernquist.pyx"], include_dirs=[numpy.get_include()])])
 
