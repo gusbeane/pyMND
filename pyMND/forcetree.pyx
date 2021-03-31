@@ -293,7 +293,7 @@ cdef force_update_node_recursive(int no, int sib, TREE tree):
 
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef double * force_treeevaluate(double* pos, TREE tree) nogil:
+cdef double * _force_treeevaluate(double* pos, TREE tree) nogil:
     cdef NODE *nop
     cdef int no, ninteractions
     cdef double r2, dx, dy, dz, mass, r, fac, u, h, h_inv, h3_inv
@@ -386,6 +386,23 @@ cdef double * force_treeevaluate(double* pos, TREE tree) nogil:
 
     return acc
 
+cpdef force_treeevaluate(double [:] pos, TREE tree):
+    cdef double *posc, *acc 
+    cdef int i
+    posc = <double *> malloc(3*sizeof(double))
+    acc = <double *> malloc(3*sizeof(double))
+
+    for i in range(3):
+        posc[i] = pos[i]
+    
+    acc = _force_treeevaluate(posc, tree)
+
+    cdef double [3] acc_out
+    
+    for i in range(3):
+        acc_out[i] = acc[i]
+    return acc_out
+
 @cython.boundscheck(False)
 cpdef _force_treeevaluate_loop(double[:,:] pos, int N, TREE tree, int num_threads):
     cdef double ** acc, **posc
@@ -413,7 +430,7 @@ cpdef _force_treeevaluate_loop(double[:,:] pos, int N, TREE tree, int num_thread
             posi[1] = posc[i][1]
             posi[2] = posc[i][2]
 
-            acci = force_treeevaluate(posi, tree)
+            acci = _force_treeevaluate(posi, tree)
             acc[i][0] = acci[0]
             acc[i][1] = acci[1]
             acc[i][2] = acci[2]
