@@ -381,6 +381,27 @@ cpdef force_treeevaluate(double[:] pos, TREE tree):
 
     return acc
 
+cpdef _force_treeevaluate_loop(double[:,:] pos, int N, TREE tree):
+    cdef double [3] this_pos, this_acc
+    acc = np.zeros((N,3))
+
+    for i in range(N):
+        this_pos[0] = pos[i][0]
+        this_pos[1] = pos[i][1]
+        this_pos[2] = pos[i][2]
+
+        this_acc = force_treeevaluate(this_pos, tree)
+        acc[i][0] = this_acc[0]
+        acc[i][1] = this_acc[1]
+        acc[i][2] = this_acc[2]
+
+    return acc
+
+
+cpdef force_treeevaluate_loop(pos, tree):
+    N = len(pos)
+    return _force_treeevaluate_loop(pos, N, tree)
+
 cpdef construct_tree(pos, mass, theta, softening):
     maxpart = pos.shape[0]
     NumPart = maxpart
