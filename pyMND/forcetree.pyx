@@ -26,16 +26,6 @@ cdef struct NODE:
 # @cython.boundscheck(False)
 # @cython.cdivision(True)
 cdef class TREE(object):
-    # cdef NODE* Nodes
-    # cdef NODE* Nodes_base
-    # cdef int* Nextnode
-    # cdef int MaxNodes, MaxPart, NumPart
-    # cdef double[:,:] Pos
-    # cdef double[:] Mass
-    # cdef int last
-    # cdef double Theta, Softening
-    # cdef int empty_tree
-
     def __init__(self, MaxNodes, MaxPart, Pos, Mass, Theta, Softening):
         self.MaxNodes = MaxNodes
         self.MaxPart = MaxPart
